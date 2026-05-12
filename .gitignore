@@ -1,0 +1,152 @@
+# AI Governance Control Tower
+# Keep source, docs, migrations, and infra templates tracked.
+# Keep local secrets, generated artifacts, caches, and demo data out of git.
+
+# Local agent/runtime state
+.agents/
+.codex/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.crt
+*.cer
+*.jks
+*.keystore
+secrets/
+.secrets/
+
+# Python / FastAPI backend
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+dist/
+build/
+*.egg-info/
+pip-wheel-metadata/
+
+# Alembic / local backend runtime
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/.local/
+backend/.cache/
+backend/uploads/
+
+# Node / Next.js frontend
+node_modules/
+.next/
+out/
+.vercel/
+.turbo/
+.swc/
+frontend/.env.local
+frontend/.env.*.local
+!frontend/.env.example
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+frontend/.turbo/
+
+# Package-manager caches
+.pnpm-store/
+.npm/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Tests, coverage, and browser automation artifacts
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+frontend/test-results/
+frontend/playwright-report/
+backend/test-results/
+
+# Local databases, queues, and generated demo data
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+postgres_data/
+pgdata/
+.data/
+data/local/
+data/demo-generated/
+
+# Logs and runtime files
+logs/
+*.log
+*.pid
+*.seed
+*.pid.lock
+uvicorn*.log
+gunicorn*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Generated exports and operational artifacts
+exports/
+audit-exports/
+artifacts/
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Docker and local compose overrides
+docker-compose.override.yml
+compose.override.yml
+.docker/
+
+# Azure / cloud local state
+.azure/
+.azd/
+infra/.terraform/
+infra/**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Editors and OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+*.swp
+*.swo
+*~

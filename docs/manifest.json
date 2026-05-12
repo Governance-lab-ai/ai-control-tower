@@ -1,0 +1,23 @@
+{
+  "project": "AI Governance Control Tower",
+  "version": "0.1",
+  "date": "2026-05-12",
+  "files": [
+    "AGENTS.md",
+    "API_SPEC.md",
+    "ARCHITECTURE.md",
+    "AZURE_INTEGRATION.md",
+    "DATA_MODEL.md",
+    "DEMO_SCRIPT.md",
+    "DESIGN.md",
+    "ENVIRONMENT.md",
+    "GOVERNANCE_MODEL.md",
+    "IMPLEMENTATION.md",
+    "README.md",
+    "ROADMAP.md",
+    "SECURITY.md",
+    "TESTING.md",
+    "assets/system-diagram-concept.png",
+    "assets/dashboard-design-concept.png"
+  ]
+}
