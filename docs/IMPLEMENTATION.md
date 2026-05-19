@@ -21,6 +21,8 @@ The first implementation should prove the workflow, not every enterprise integra
 6. Route risky cases into human review.
 7. Show the organisation's AI risk posture in a secure, command-centre-style dashboard.
 
+V2 should evolve this into a genuine multi-agent governance system, but the MVP should first prove the gateway, registry, review, audit, and reporting workflow with bounded services.
+
 ## Non-negotiable engineering principles
 
 - **Local-first:** the app must run locally with Docker Compose and synthetic data.
@@ -102,7 +104,9 @@ ai-governance-control-tower/
         safety/
           base.py
           local_pii.py
+          presidio_pii.py
           local_prompt_policy.py
+          redaction.py
           azure_content_safety.py
         retrieval/
           base.py
@@ -318,20 +322,23 @@ The gateway must:
 5. Run prompt/input checks.
 6. Run PII detection.
 7. Run retrieval permission checks if documents are included.
-8. Calculate dynamic risk.
-9. Allow, block, or hold the request.
-10. Execute LLM call if allowed.
-11. Run post-execution checks.
-12. Log the model run.
-13. Create evaluation result.
-14. Create review item or incident if needed.
-15. Return final route result.
+8. Redact configured sensitive entities before provider execution.
+9. Calculate dynamic risk.
+10. Allow, block, or hold the request.
+11. Execute LLM call if allowed.
+12. Run post-execution checks.
+13. Log the model run.
+14. Create evaluation result.
+15. Create review item or incident if needed.
+16. Return final route result.
 
 Acceptance criteria:
 
 - Unapproved systems cannot execute.
 - Blocked prompt policy creates a blocked run and audit event.
 - PII in input or output is flagged.
+- Names, emails, phone numbers, and account numbers can be redacted before LLM execution.
+- Prompt injection, jailbreak, and suspicious tool-use attempts are visible in route reasons.
 - Risky responses route to human review.
 - All gateway decisions are explainable in the returned JSON.
 
@@ -339,8 +346,12 @@ Acceptance criteria:
 
 Implement local evaluators first:
 
-- PII detection using regex and structured rules.
+- PII detection using Microsoft Presidio/Presidio where available.
+- Regex, NER, and entity detection fallback for local/demo mode.
 - Prompt injection keyword/pattern check.
+- Jailbreak detection and suspicious prompt heuristics.
+- Tool restriction logic that validates allowed tools and blocks unapproved tool instructions.
+- Pre-LLM redaction for names, emails, phone numbers, and account numbers.
 - Output safety heuristic.
 - Groundedness heuristic using retrieved source overlap.
 - Relevance heuristic.
@@ -354,6 +365,46 @@ Acceptance criteria:
 - Every run has an evaluation record.
 - Evaluation result contains enough detail for human reviewers.
 - Evaluation thresholds are configurable.
+
+### Role-based access levels
+
+The MVP role model should be simple and backend-enforced:
+
+| Role | Purpose |
+|---|---|
+| `admin` | Manage systems, approvals, policies, users, exports, and settings. |
+| `analyst` | View dashboards, systems, runs, evaluations, incidents, and cost/latency trends. |
+| `reviewer` | Work review queues, inspect allowed evidence, and record review decisions. |
+| `auditor` | Read audit logs, evidence summaries, and exports without changing operational state. |
+
+Frontend controls may hide actions, but backend dependencies must enforce the permission checks.
+
+### Audit evidence requirements
+
+Audit and run evidence must cover:
+
+- Prompts.
+- Outputs.
+- Retrieved documents and retrieval metadata.
+- Approval changes.
+- Costs and latency.
+- Reviewer actions.
+
+Full prompts, outputs, and documents should not be written to general application logs. Store them in controlled model-run/evidence records with redaction, retention, and role-based access.
+
+## V2 multi-agent architecture
+
+V2 should turn the gateway-led MVP into a genuine multi-agent governance system. These agents are bounded backend services, not unsupervised autonomous actors. Each agent needs typed contracts, explicit permissions, clear failure behavior, and audit events.
+
+| Agent | Responsibilities |
+|---|---|
+| Retrieval Agent | Semantic retrieval, hybrid retrieval, reranking, source grounding. |
+| Evaluation Agent | Hallucination scoring, groundedness, policy validation, confidence scoring. |
+| Compliance Agent | PII detection, policy checks, prompt injection detection, output sanitisation. |
+| Human Review Agent | Escalate risky outputs, route to reviewer, generate audit summary, maintain approval workflow. |
+| Reporting Agent | Telemetry, cost tracking, latency metrics, weekly insights. |
+
+V2 implementation should preserve the same gateway boundary: AI apps still call the Control Tower, and no frontend path may call model providers directly.
 
 ### Phase E — Review and incidents
 

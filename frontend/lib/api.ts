@@ -1,4 +1,4 @@
-import type { AISystem, AISystemCreate, ApprovalStatus } from "@/lib/types";
+import type { AISystem, AISystemCreate, ApprovalStatus, GovernanceRunRequest, GovernanceRunResponse } from "@/lib/types";
 
 const PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const SERVER_API_BASE_URL = process.env.NEXT_PRIVATE_API_BASE_URL ?? PUBLIC_API_BASE_URL;
@@ -62,5 +62,12 @@ export async function updateApprovalStatus(id: string, approvalStatus: ApprovalS
   return apiFetch<AISystem>(`/ai-systems/${id}/approval-status`, {
     method: "PATCH",
     body: JSON.stringify({ approval_status: approvalStatus }),
+  });
+}
+
+export async function runGovernanceGateway(payload: GovernanceRunRequest): Promise<GovernanceRunResponse> {
+  return apiFetch<GovernanceRunResponse>("/governance/run", {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }

@@ -27,3 +27,21 @@ export type AISystem = {
 };
 
 export type AISystemCreate = Omit<AISystem, "id" | "created_at" | "updated_at">;
+
+export type GovernanceRunStatus = "executed" | "blocked" | "requires_review" | "failed";
+
+export type GovernanceRunRequest = {
+  ai_system_id: string;
+  actor: string;
+  prompt: string;
+  input_text: string;
+  retrieved_documents?: string[];
+  metadata?: Record<string, unknown>;
+};
+
+export type GovernanceRunResponse = {
+  run_id: string | null;
+  status: GovernanceRunStatus;
+  output_text: string | null;
+  governance_messages: string[];
+};

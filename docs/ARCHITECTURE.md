@@ -179,6 +179,15 @@ sequenceDiagram
 
 ## Route decision model
 
+Episode 3 implements the first synchronous gateway endpoint at `POST /governance/run`. It enforces approval status before provider execution:
+
+- approved systems execute through the local mock LLM provider.
+- pending systems return `requires_review` without model execution.
+- blocked and retired systems return `blocked` without model execution.
+- missing systems return `AI_SYSTEM_NOT_FOUND`.
+
+The provider boundary is `LLMProvider`, currently backed by `LocalMockLLMProvider`. `AzureOpenAIProvider` exists only as a placeholder with TODOs and no credential requirement.
+
 The gateway returns one of four route decisions:
 
 | Decision | Meaning | User-facing behaviour |

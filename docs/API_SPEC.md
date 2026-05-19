@@ -188,6 +188,66 @@ Response:
 
 Creating a system records an `ai_system.created` audit event. Changing approval status records an `ai_system.approval_status_changed` audit event.
 
+## Governance gateway
+
+### `POST /governance/run`
+
+Runs a request through the governance gateway instead of calling a model provider directly.
+
+Request:
+
+```json
+{
+  "ai_system_id": "11111111-1111-1111-1111-111111111111",
+  "actor": "local_mock:governance_admin",
+  "prompt": "Summarise the request using approved policy language.",
+  "input_text": "Synthetic support ticket asks for a delivery status update.",
+  "retrieved_documents": [
+    "Synthetic delivery policy document."
+  ],
+  "metadata": {
+    "source": "system_detail_test_run"
+  }
+}
+```
+
+Executed response:
+
+```json
+{
+  "run_id": "22222222-2222-2222-2222-222222222222",
+  "status": "executed",
+  "output_text": "[Local mock output] Customer Support Summariser processed the request.",
+  "governance_messages": [
+    "AI system is approved for gateway execution.",
+    "Executed through provider local_mock using model mock-governance-gateway.",
+    "Detailed model run persistence will be added in the model_runs episode."
+  ]
+}
+```
+
+Blocked response:
+
+```json
+{
+  "run_id": null,
+  "status": "blocked",
+  "output_text": null,
+  "governance_messages": [
+    "Execution blocked because approval status is blocked.",
+    "No model provider call was made."
+  ]
+}
+```
+
+Episode 3 gateway rules:
+
+- Missing AI system returns `404` with `AI_SYSTEM_NOT_FOUND`.
+- `approved` systems execute through `LocalMockLLMProvider`.
+- `pending` systems return `requires_review` and do not execute.
+- `blocked` and `retired` systems return `blocked` and do not execute.
+- Gateway attempts create audit events with actions such as `governance.run.executed`, `governance.run.blocked`, and `governance.run.requires_review`.
+
 ## Data sources
 
 ### `GET /api/v1/data-sources`

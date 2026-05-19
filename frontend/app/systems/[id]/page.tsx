@@ -8,6 +8,7 @@ import { getSystem } from "@/lib/api";
 import { formatBooleanYesNo, formatDateTime, formatRequired } from "@/lib/format";
 import { getNavItems } from "@/lib/navigation";
 import { ApprovalStatusControl } from "./approval-status-control";
+import { TestRunPanel } from "./components/test-run-panel";
 
 export default async function SystemDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -63,6 +64,7 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
             </div>
           </Panel>
         </aside>
+        <TestRunPanel systemId={system.id} approvalStatus={system.approval_status} />
       </section>
     </AppShell>
   );

@@ -154,6 +154,14 @@ The gateway evaluates:
 - Retrieval document sensitivity.
 - Provider availability.
 
+Planned control services:
+
+- PII detection using Microsoft Presidio/Presidio where available, plus regex, NER, and entity detection fallback.
+- Prompt injection detection covering jailbreak attempts, suspicious prompt heuristics, and tool restriction logic.
+- Redaction before LLM execution for names, emails, phone numbers, and account numbers.
+- Role-based access for admin, analyst, reviewer, and auditor workflows.
+- Audit capture for prompts, outputs, retrieved docs, approvals, costs, and reviewer actions.
+
 Route decisions:
 
 ```text
@@ -162,6 +170,43 @@ allow_with_review
 hold_for_review
 block
 ```
+
+### Episode 3 local gateway rules
+
+Episode 3 implements the first runtime gateway at `POST /governance/run`.
+
+| Approval status | Gateway status | Execution behaviour |
+|---|---|---|
+| `approved` | `executed` | Calls `LocalMockLLMProvider` and returns mock output. |
+| `pending` | `requires_review` | Does not execute. The system must be reviewed before model execution. |
+| `blocked` | `blocked` | Does not execute. A governance audit event is recorded. |
+| `retired` | `blocked` | Does not execute. A governance audit event is recorded. |
+| missing system | HTTP 404 | Returns `AI_SYSTEM_NOT_FOUND`. |
+
+Provider boundary:
+
+- `LLMProvider` is the backend interface for model execution.
+- `LocalMockLLMProvider` is the only active Episode 3 implementation.
+- `AzureOpenAIProvider` is a placeholder and must not require credentials until the Azure integration phase.
+
+Audit behaviour:
+
+- Executed gateway calls record `governance.run.executed`.
+- Blocked calls record `governance.run.blocked`.
+- Pending calls record `governance.run.requires_review`.
+- Detailed `model_runs` persistence is intentionally deferred to the next episode.
+
+## V2 multi-agent governance model
+
+The V2 direction is a genuine multi-agent governance system. Agents are bounded backend services with typed contracts, explicit permissions, observable decisions, and audit events. They should not silently change approval states or execute model/provider calls outside the gateway.
+
+| Agent | Responsibilities |
+|---|---|
+| Retrieval Agent | Semantic retrieval, hybrid retrieval, reranking, source grounding. |
+| Evaluation Agent | Hallucination scoring, groundedness, policy validation, confidence scoring. |
+| Compliance Agent | PII detection, policy checks, prompt injection detection, output sanitisation. |
+| Human Review Agent | Escalate risky outputs, route to reviewer, generate audit summary, maintain approval workflow. |
+| Reporting Agent | Telemetry, cost tracking, latency metrics, weekly insights. |
 
 ## Dynamic risk scoring
 
