@@ -1,0 +1,116 @@
+from uuid import UUID
+
+from fastapi import HTTPException, status
+from sqlalchemy import func, select, update
+from sqlalchemy.orm import Session
+
+from app.models.ai_system import AISystem
+from app.models.prompt_version import PromptVersion
+from app.schemas.prompt_version import PromptVersionCreate
+from app.services.audit import create_audit_event
+
+LOCAL_ACTOR = "local_mock:governance_admin"
+
+
+def ensure_default_prompt_version(db: Session, ai_system: AISystem) -> PromptVersion:
+    active = get_active_prompt_version(db, ai_system.id)
+    if active is not None:
+        return active
+
+    prompt_version = PromptVersion(
+        ai_system_id=ai_system.id,
+        version="v1",
+        name=f"{ai_system.name} default prompt",
+        prompt_text="Use the registered AI system purpose and approved governance policy when responding.",
+        status="active",
+    )
+    db.add(prompt_version)
+    db.flush()
+    return prompt_version
+
+
+def get_active_prompt_version(db: Session, system_id: UUID) -> PromptVersion | None:
+    statement = (
+        select(PromptVersion)
+        .where(PromptVersion.ai_system_id == system_id, PromptVersion.status == "active")
+        .order_by(PromptVersion.created_at.desc())
+    )
+    return db.scalars(statement).first()
+
+
+def list_prompt_versions(db: Session, system_id: UUID) -> list[PromptVersion]:
+    _get_system_or_404(db, system_id)
+    statement = select(PromptVersion).where(PromptVersion.ai_system_id == system_id).order_by(PromptVersion.created_at.desc())
+    return list(db.scalars(statement).all())
+
+
+def create_prompt_version(db: Session, system_id: UUID, payload: PromptVersionCreate) -> PromptVersion:
+    system = _get_system_or_404(db, system_id)
+    version = payload.version or _next_version_label(db, system_id)
+
+    if payload.status == "active":
+        _retire_active_versions(db, system_id)
+
+    prompt_version = PromptVersion(
+        ai_system_id=system.id,
+        version=version,
+        name=payload.name,
+        prompt_text=payload.prompt_text,
+        status=payload.status,
+    )
+    db.add(prompt_version)
+    db.flush()
+    create_audit_event(
+        db,
+        actor=LOCAL_ACTOR,
+        action="prompt_version.created",
+        entity_type="prompt_version",
+        entity_id=prompt_version.id,
+        summary=f"Prompt version created for {system.name}: {prompt_version.version}",
+        metadata={"ai_system_id": str(system.id), "status": prompt_version.status},
+    )
+    db.commit()
+    db.refresh(prompt_version)
+    return prompt_version
+
+
+def activate_prompt_version(db: Session, prompt_version_id: UUID) -> PromptVersion:
+    prompt_version = db.get(PromptVersion, prompt_version_id)
+    if prompt_version is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"code": "PROMPT_VERSION_NOT_FOUND"})
+
+    _retire_active_versions(db, prompt_version.ai_system_id)
+    prompt_version.status = "active"
+    db.flush()
+    create_audit_event(
+        db,
+        actor=LOCAL_ACTOR,
+        action="prompt_version.activated",
+        entity_type="prompt_version",
+        entity_id=prompt_version.id,
+        summary=f"Prompt version activated: {prompt_version.version}",
+        metadata={"ai_system_id": str(prompt_version.ai_system_id)},
+    )
+    db.commit()
+    db.refresh(prompt_version)
+    return prompt_version
+
+
+def _get_system_or_404(db: Session, system_id: UUID) -> AISystem:
+    system = db.get(AISystem, system_id)
+    if system is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"code": "AI_SYSTEM_NOT_FOUND"})
+    return system
+
+
+def _retire_active_versions(db: Session, system_id: UUID) -> None:
+    db.execute(
+        update(PromptVersion)
+        .where(PromptVersion.ai_system_id == system_id, PromptVersion.status == "active")
+        .values(status="retired")
+    )
+
+
+def _next_version_label(db: Session, system_id: UUID) -> str:
+    existing_count = db.scalar(select(func.count(PromptVersion.id)).where(PromptVersion.ai_system_id == system_id)) or 0
+    return f"v{existing_count + 1}"

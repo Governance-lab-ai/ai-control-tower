@@ -208,7 +208,7 @@ Domains:
 
 **Risk addressed:** Unlogged AI activity, missing checks, direct frontend/provider calls, inconsistent controls.
 
-**Implementation:** AI apps call `POST /api/v1/governance/run`. The backend performs approval, role, prompt, PII, risk, provider, evaluation, review, and audit steps.
+**Implementation:** AI apps call `POST /governance/run`. The backend performs approval, role, prompt, PII, risk, provider, evaluation, review, and audit steps.
 
 **Evidence generated:**
 
@@ -345,7 +345,7 @@ Domains:
 
 **Risk addressed:** Privacy leakage, inappropriate processing, poor retention decisions.
 
-**Implementation:** Add configurable score weight and review threshold when system or input contains personal data.
+**Implementation:** Add configurable score weight and review threshold when system or input contains personal data. Use Microsoft Presidio/Presidio where available, with regex, NER, and entity detection fallback for local/demo mode.
 
 **Evidence generated:**
 
@@ -369,7 +369,7 @@ Domains:
 
 **Risk addressed:** Sensitive data exposure, privacy violations, unapproved processing.
 
-**Implementation:** Local regex/heuristic detector in MVP; provider-based detection later.
+**Implementation:** Use Microsoft Presidio/Presidio where available. Local/demo mode may fall back to regex, NER, and entity detection for names, emails, phone numbers, account numbers, addresses, and payment-card-like values.
 
 **Evidence generated:**
 
@@ -391,7 +391,7 @@ Domains:
 
 **Risk addressed:** System prompt leakage, tool misuse, policy bypass, retrieval compromise.
 
-**Implementation:** Pattern-based MVP checks; later integrate Prompt Shields, Garak, Promptfoo, or other security test providers.
+**Implementation:** Pattern-based MVP checks for jailbreak attempts, suspicious prompt heuristics, hidden-instruction requests, policy-bypass requests, and unapproved tool instructions. Later integrate Prompt Shields, Garak, Promptfoo, or other security test providers.
 
 **Evidence generated:**
 
@@ -403,6 +403,28 @@ Domains:
 **Framework alignment:** OWASP LLM Top 10, NIST security/resilience, ISO/IEC 42001 operational controls.
 
 **Limitations:** Simple pattern checks cannot catch sophisticated attacks.
+
+**Maturity:** MVP/Later
+
+---
+
+### ACT-EVAL-006 — Pre-LLM redaction
+
+**Purpose:** Reduce sensitive data sent to model providers.
+
+**Risk addressed:** Unnecessary disclosure of personal data, unsafe provider context, excessive collection.
+
+**Implementation:** Redact names, emails, phone numbers, and account numbers before provider execution when system policy requires redaction. Preserve redaction metadata so reviewers can understand what categories were removed without exposing raw values.
+
+**Evidence generated:**
+
+- `redaction_event`
+- `redacted_entity_types`
+- `route_decision`
+
+**Framework alignment:** Privacy, data minimisation, OWASP sensitive information disclosure.
+
+**Limitations:** Redaction quality depends on detector quality and may require human review for high-risk systems.
 
 **Maturity:** MVP/Later
 
@@ -707,7 +729,7 @@ Domains:
 
 **Risk addressed:** Privacy leakage through telemetry, overcollection, unsafe audit exports.
 
-**Implementation:** Do not log full prompts/outputs to console by default. Store content in secured model-run records with redaction and access control.
+**Implementation:** Do not log full prompts/outputs to console by default. Store prompts, outputs, retrieved documents, approvals, costs, and reviewer actions in secured evidence records with redaction and access control.
 
 **Evidence generated:**
 
@@ -729,7 +751,7 @@ Domains:
 
 **Risk addressed:** Unauthorised approvals, inappropriate access to sensitive runs, weak segregation of duties.
 
-**Implementation:** Local mock RBAC in MVP; Entra ID / SSO later.
+**Implementation:** Local mock RBAC in MVP with `admin`, `analyst`, `reviewer`, and `auditor` roles; Entra ID / SSO later.
 
 **Evidence generated:**
 
@@ -894,14 +916,15 @@ For the first working demo, prioritise:
 7. ACT-EVAL-001 — Input PII check
 8. ACT-EVAL-002 — Prompt injection check
 9. ACT-EVAL-003 — Output PII check
-10. ACT-EVAL-005 — Evaluation result record
-11. ACT-REV-001 — Human review routing
-12. ACT-REV-002 — Review decision audit
-13. ACT-INC-001 — Incident creation
-14. ACT-AUD-001 — Append-only audit event
-15. ACT-SEC-001 — No secrets in frontend
-16. ACT-OBS-001 — Model run telemetry
-17. ACT-INT-001 — Provider adapter boundary
+10. ACT-EVAL-006 — Pre-LLM redaction
+11. ACT-EVAL-005 — Evaluation result record
+12. ACT-REV-001 — Human review routing
+13. ACT-REV-002 — Review decision audit
+14. ACT-INC-001 — Incident creation
+15. ACT-AUD-001 — Append-only audit event
+16. ACT-SEC-001 — No secrets in frontend
+17. ACT-OBS-001 — Model run telemetry
+18. ACT-INT-001 — Provider adapter boundary
 
 ## Public wording guidance
 

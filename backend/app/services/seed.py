@@ -2,8 +2,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.ai_system import AISystem
+from app.models.model_run import ModelRun
 from app.schemas.ai_system import AISystemCreate
 from app.services.ai_systems import create_ai_system
+from app.services.model_runs import create_model_run, estimate_local_cost_usd
+from app.services.prompt_versions import ensure_default_prompt_version, get_active_prompt_version
 
 
 DEMO_SYSTEMS: tuple[AISystemCreate, ...] = (
@@ -60,4 +63,79 @@ def seed_demo_systems(db: Session) -> int:
             continue
         create_ai_system(db, payload)
         created += 1
+    ensure_default_prompt_versions(db)
+    seed_demo_model_runs(db)
+    return created
+
+
+def ensure_default_prompt_versions(db: Session) -> int:
+    created = 0
+    systems = db.scalars(select(AISystem)).all()
+    for system in systems:
+        if get_active_prompt_version(db, system.id) is not None:
+            continue
+        ensure_default_prompt_version(db, system)
+        created += 1
+    if created:
+        db.commit()
+    return created
+
+
+def seed_demo_model_runs(db: Session) -> int:
+    existing_run_count = db.scalar(select(ModelRun).limit(1))
+    if existing_run_count is not None:
+        return 0
+
+    systems_by_name = {system.name: system for system in db.scalars(select(AISystem)).all()}
+    created = 0
+    demo_runs = [
+        {
+            "system_name": "Sales Email Generator",
+            "prompt": "Draft a short approved outreach email using product messaging only.",
+            "input_text": "Synthetic prospect segment: operations leaders evaluating governance tooling.",
+            "output_text": "Subject: Govern AI with confidence\n\nHi there, here is a concise approved outreach draft for governance-focused operations leaders.",
+            "retrieved_documents": ["Approved product messaging brief for synthetic demo outreach."],
+            "latency_ms": 84,
+        },
+        {
+            "system_name": "Sales Email Generator",
+            "prompt": "Create three subject line options using approved positioning.",
+            "input_text": "Synthetic campaign for risk and compliance leaders.",
+            "output_text": "1. Govern AI before risk scales\n2. Bring control to AI workflows\n3. Make AI use audit-ready",
+            "retrieved_documents": ["Synthetic campaign positioning notes."],
+            "latency_ms": 63,
+        },
+        {
+            "system_name": "Customer Support Summariser",
+            "prompt": "Summarise the support interaction for internal triage.",
+            "input_text": "Synthetic support case describes a delayed shipment and refund request.",
+            "output_text": "The customer is asking for shipment status and refund options. Escalate to a support reviewer before sending.",
+            "retrieved_documents": ["Synthetic support policy: delayed shipment handling.", "Synthetic refund policy summary."],
+            "latency_ms": 112,
+        },
+    ]
+
+    for item in demo_runs:
+        system = systems_by_name.get(item["system_name"])
+        if system is None:
+            continue
+        prompt_version = get_active_prompt_version(db, system.id)
+        create_model_run(
+            db,
+            ai_system=system,
+            prompt_version_id=prompt_version.id if prompt_version else None,
+            prompt=item["prompt"],
+            input_text=item["input_text"],
+            output_text=item["output_text"],
+            model_provider=system.model_provider,
+            model_name=system.model_name,
+            model_version="seed-demo-v1",
+            latency_ms=item["latency_ms"],
+            cost_usd=estimate_local_cost_usd(item["prompt"], item["input_text"], item["output_text"], item["retrieved_documents"]),
+            status_="executed",
+            retrieved_documents=item["retrieved_documents"],
+        )
+        created += 1
+
+    db.commit()
     return created

@@ -171,7 +171,7 @@ critical
 | `created_at` | timestamptz | Created timestamp. |
 | `updated_at` | timestamptz | Updated timestamp. |
 
-Episode 2 creates this table locally through SQLAlchemy `create_all` on startup and seeds three synthetic systems when missing:
+The local app applies Alembic migrations on startup and seeds three synthetic systems when missing:
 
 - Customer Support Summariser: medium risk, pending, contains personal data.
 - Sales Email Generator: low risk, approved, no personal data.
@@ -215,7 +215,13 @@ Join table.
 | `created_at` | timestamptz | Created timestamp. |
 | `activated_at` | timestamptz nullable | Active timestamp. |
 
+Episode 4 local MVP creates a default active `v1` prompt version for every registered system. Additional versions can be created as drafts and activated through the API; activation retires the previous active version for the same system.
+
 ### `model_runs`
+
+Episode 4 local MVP implements a focused subset: `id`, `ai_system_id`, nullable `prompt_version_id`, `prompt`, `input_text`, nullable `output_text`, `model_provider`, `model_name`, `model_version`, `latency_ms`, `cost_usd`, `status`, and `created_at`.
+
+Episode 5 adds `input_pii_result` and `output_pii_result` JSON fields. These store detector metadata such as `pii_detected`, `pii_types`, redacted snippets, and confidence label.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -239,6 +245,8 @@ Join table.
 | `created_at` | timestamptz | Run timestamp. |
 
 ### `retrieved_documents`
+
+Episode 4 local MVP stores supplied retrieved document text as run evidence with `source_label`, `content`, and `ordinal`. Registered data-source linkage and retrieval scores remain later enhancements.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -289,22 +297,20 @@ Join table.
 
 ### `incidents`
 
+Episode 5 local MVP implements incidents for PII detection. PII incidents are created when local regex checks detect synthetic PII in model input or output.
+
 | Column | Type | Notes |
 |---|---|---|
 | `id` | UUID PK | Incident ID. |
-| `company_id` | UUID FK | Company. |
 | `ai_system_id` | UUID FK | System. |
 | `model_run_id` | UUID FK nullable | Linked run. |
-| `type` | enum | Incident type. |
+| `incident_type` | text | `pii_detected_input`, `pii_detected_output`, etc. |
 | `severity` | enum | Severity. |
 | `status` | enum | Status. |
 | `title` | text | Short title. |
 | `description` | text | Explanation. |
-| `owner_user_id` | UUID FK nullable | Incident owner. |
-| `detected_at` | timestamptz | Detection time. |
-| `resolved_at` | timestamptz nullable | Resolution time. |
-| `resolution_notes` | text nullable | Resolution notes. |
-| `metadata` | jsonb | Additional evidence refs. |
+| `created_at` | timestamptz | Detection time. |
+| `updated_at` | timestamptz | Last update time. |
 
 ### `audit_events`
 

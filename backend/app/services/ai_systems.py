@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.ai_system import AISystem
 from app.schemas.ai_system import AISystemCreate, ApprovalStatusUpdate
 from app.services.audit import create_audit_event
+from app.services.prompt_versions import ensure_default_prompt_version
 
 
 LOCAL_ACTOR = "local_mock:governance_admin"
@@ -16,6 +17,7 @@ def create_ai_system(db: Session, payload: AISystemCreate) -> AISystem:
     system = AISystem(**payload.model_dump())
     db.add(system)
     db.flush()
+    prompt_version = ensure_default_prompt_version(db, system)
     create_audit_event(
         db,
         actor=LOCAL_ACTOR,
@@ -27,6 +29,7 @@ def create_ai_system(db: Session, payload: AISystemCreate) -> AISystem:
             "risk_level": system.risk_level,
             "approval_status": system.approval_status,
             "department": system.department,
+            "active_prompt_version_id": str(prompt_version.id),
         },
     )
     db.commit()

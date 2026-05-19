@@ -188,6 +188,163 @@ Response:
 
 Creating a system records an `ai_system.created` audit event. Changing approval status records an `ai_system.approval_status_changed` audit event.
 
+## Governance gateway
+
+### `POST /governance/run`
+
+Runs a request through the governance gateway instead of calling a model provider directly.
+
+Request:
+
+```json
+{
+  "ai_system_id": "11111111-1111-1111-1111-111111111111",
+  "actor": "local_mock:governance_admin",
+  "prompt": "Summarise the request using approved policy language.",
+  "input_text": "Synthetic support ticket asks for a delivery status update.",
+  "retrieved_documents": [
+    "Synthetic delivery policy document."
+  ],
+  "metadata": {
+    "source": "system_detail_test_run"
+  }
+}
+```
+
+Executed response:
+
+```json
+{
+  "run_id": "22222222-2222-2222-2222-222222222222",
+  "status": "executed",
+  "output_text": "[Local mock output] Customer Support Summariser processed the request.",
+  "governance_messages": [
+    "AI system is approved for gateway execution.",
+    "Executed through provider local_mock using model mock-governance-gateway.",
+    "Model run logged with latency 84ms and estimated cost $0.000065."
+  ]
+}
+```
+
+Blocked response:
+
+```json
+{
+  "run_id": "44444444-4444-4444-4444-444444444444",
+  "status": "blocked",
+  "output_text": null,
+  "governance_messages": [
+    "Execution blocked because approval status is blocked.",
+    "No model provider call was made.",
+    "Blocked attempt was logged as a model run shell for audit review."
+  ]
+}
+```
+
+Episode 3 gateway rules:
+
+- Missing AI system returns `404` with `AI_SYSTEM_NOT_FOUND`.
+- `approved` systems execute through `LocalMockLLMProvider`.
+- `pending` systems return `requires_review`, do not execute, and create a model-run shell.
+- `blocked` and `retired` systems return `blocked`, do not execute, and create a model-run shell.
+- Gateway attempts create audit events with actions such as `governance.run.executed`, `governance.run.blocked`, and `governance.run.requires_review`.
+- Gateway attempts create persistent `model_runs` records and one `retrieved_documents` row for each supplied retrieved document. Non-executed shells have `output_text: null`, `latency_ms: 0`, `cost_usd: 0`, and `model_version: "not_executed"`.
+
+## Model runs
+
+### `GET /model-runs`
+
+Returns all persisted model runs, newest first.
+
+### `GET /model-runs/{run_id}`
+
+Returns one model run with retrieved documents.
+
+Response:
+
+```json
+{
+  "id": "22222222-2222-2222-2222-222222222222",
+  "ai_system_id": "11111111-1111-1111-1111-111111111111",
+  "prompt_version_id": "55555555-5555-5555-5555-555555555555",
+  "prompt": "Summarise the request using approved policy language.",
+  "input_text": "Synthetic support ticket asks for a delivery status update.",
+  "output_text": "[Local mock output] Customer Support Summariser processed the request.",
+  "model_provider": "local_mock",
+  "model_name": "mock-governance-gateway",
+  "model_version": "local-mock-v1",
+  "latency_ms": 84,
+  "cost_usd": 0.000065,
+  "status": "executed",
+  "input_pii_result": {
+    "pii_detected": false,
+    "pii_types": [],
+    "locations": [],
+    "confidence": "low"
+  },
+  "output_pii_result": {
+    "pii_detected": false,
+    "pii_types": [],
+    "locations": [],
+    "confidence": "low"
+  },
+  "created_at": "2026-05-19T10:00:00Z",
+  "retrieved_documents": [
+    {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "model_run_id": "22222222-2222-2222-2222-222222222222",
+      "source_label": "retrieved_document_1",
+      "content": "Synthetic delivery policy document.",
+      "ordinal": 1,
+      "created_at": "2026-05-19T10:00:00Z"
+    }
+  ]
+}
+```
+
+### `GET /ai-systems/{system_id}/runs`
+
+Returns model runs for a selected AI system, newest first.
+
+## PII detection and incidents
+
+Episode 5 adds hybrid local PII checks before and after model execution. This is a prototype detector for synthetic demos and obvious structured values, not comprehensive PII discovery.
+
+Detected patterns:
+
+- Email addresses.
+- Phone numbers.
+- Names with labels such as `Customer name:`.
+- Account IDs with labels such as `Account ID:`.
+- Addresses with labels such as `Address:`.
+- Dates of birth, national IDs, and postal codes with labels.
+- IBAN-like values.
+- Payment-card-like values that pass a Luhn checksum.
+
+If PII is detected in input or output:
+
+- The model run stores `input_pii_result` and/or `output_pii_result`.
+- The run status is set to `requires_review` for executed runs.
+- A PII incident is created with redacted snippets only.
+
+Synthetic demo input:
+
+```text
+Customer name: Alex Morgan. Email alex.morgan@example.test. Account ID: ACCT-12345.
+```
+
+### `GET /incidents`
+
+Returns all incidents, newest first.
+
+### `GET /incidents/{incident_id}`
+
+Returns one incident.
+
+### `GET /ai-systems/{system_id}/incidents`
+
+Returns incidents for a selected AI system.
+
 ## Data sources
 
 ### `GET /api/v1/data-sources`
@@ -209,7 +366,11 @@ Request:
 
 ## Prompt versions
 
-### `POST /api/v1/ai-systems/{system_id}/prompt-versions`
+### `GET /ai-systems/{system_id}/prompt-versions`
+
+List prompt versions for a system.
+
+### `POST /ai-systems/{system_id}/prompt-versions`
 
 Create draft prompt version.
 
@@ -222,13 +383,13 @@ Request:
 }
 ```
 
-### `PATCH /api/v1/prompt-versions/{prompt_version_id}/activate`
+### `PATCH /prompt-versions/{prompt_version_id}/activate`
 
-Activate prompt version. Requires appropriate role.
+Activate prompt version. Activating one version retires the previous active version for that system. Newly registered systems receive a default active `v1` prompt version.
 
 ## Governance gateway
 
-### `POST /api/v1/governance/run`
+### `POST /governance/run`
 
 Primary runtime endpoint.
 
@@ -294,7 +455,7 @@ Blocked response:
 
 ## Model runs
 
-### `GET /api/v1/model-runs`
+### `GET /model-runs`
 
 Query params:
 
@@ -311,7 +472,7 @@ page
 page_size
 ```
 
-### `GET /api/v1/model-runs/{run_id}`
+### `GET /model-runs/{run_id}`
 
 Returns full detail for authorised users:
 

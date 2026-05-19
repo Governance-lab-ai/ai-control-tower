@@ -78,12 +78,12 @@ Use these as guidance anchors, not as box-ticking checklists:
 
 | Role | Permissions |
 |---|---|
-| Viewer | Read dashboards and non-sensitive registry items. |
-| System Owner | Create/update own systems, view runs for owned systems. |
-| Reviewer | View review queue, inspect run evidence, make review decisions. |
-| Governance Admin | Approve/block systems, manage policies, view audit logs. |
-| Security Admin | Manage incidents, integrations, high-severity exports. |
-| Auditor | Read-only access to audit logs and exports. |
+| Admin | Manage systems, approvals, policies, users, exports, integrations, and settings. |
+| Analyst | Read dashboards, registry data, runs, evaluations, incidents, costs, and latency metrics. |
+| Reviewer | View review queue, inspect permitted run evidence, and make review decisions. |
+| Auditor | Read-only access to audit logs, evidence summaries, approvals, reviewer actions, and exports. |
+
+Optional future roles can split admin duties into system owner, governance admin, and security admin, but the MVP access model should start with `admin`, `analyst`, `reviewer`, and `auditor`.
 
 ### Azure target
 
@@ -168,14 +168,21 @@ Critical actions requiring audit events:
 
 - AI system created/updated/deleted/retired.
 - Approval status changed.
+- Prompt submitted to the governance gateway.
+- Model output produced by the provider.
+- Retrieved documents attached to a run.
 - Prompt version created/activated/deactivated.
 - Model run executed, blocked, or held.
+- Cost or token estimate captured.
 - Evaluation failure.
 - Review decision.
+- Reviewer action or comment added.
 - Incident created/updated/resolved.
 - Export generated.
 - Integration settings changed.
 - Role/permission changed.
+
+Audit records should track prompts, outputs, retrieved docs, approvals, costs, and reviewer actions. Sensitive prompt/output/document content should be stored as controlled evidence with redacted audit metadata, not copied into general logs.
 
 ## Input validation
 
@@ -212,22 +219,38 @@ Frontend:
 Controls:
 
 - Pre-check user prompts and retrieved documents.
+- Detect jailbreak language and attempts to override system/developer instructions.
+- Detect suspicious prompt heuristics such as requests to reveal hidden prompts, bypass policy, ignore prior instructions, or exfiltrate context.
 - Separate system instructions from user input.
 - Do not expose hidden system prompts.
 - Do not allow model output to directly trigger privileged actions.
 - Validate tool calls server-side.
 - Use strict allowlists for tools and data sources.
+- Enforce tool restriction logic before execution and block unapproved tool instructions.
 - Add Prompt Shields in Azure phase.
 
 ### Sensitive information disclosure
 
 Controls:
 
-- PII detection before and after generation.
+- PII detection before and after generation using Presidio/Microsoft Presidio where available.
+- Use regex, NER, and entity detection fallback in local/demo mode.
+- Detect at minimum names, emails, phone numbers, account numbers, addresses, and payment-card-like values where practical.
+- Redact names, emails, phone numbers, and account numbers before LLM execution when the policy requires it.
 - Redact previews in UI where appropriate.
 - Route sensitive outputs to review.
 - Prevent reviewers from exporting data unless authorised.
 - Avoid sending unnecessary context to LLMs.
+
+Episode 5 local implementation:
+
+- Uses `HybridLocalPIIDetector` for synthetic demo patterns and obvious structured values only.
+- Detects emails, phone numbers, labelled names, labelled account IDs, labelled addresses, labelled dates of birth, labelled national IDs, labelled postal codes, IBAN-like values, and Luhn-valid payment-card-like values.
+- Stores detector results with redacted snippets and confidence labels.
+- Creates PII incidents for detected input/output PII.
+- Is not comprehensive and must not be represented as legal, privacy, or regulatory assurance.
+
+V2/Azure improvements should add Presidio/Microsoft Presidio, NER, Azure AI services, and policy-specific recognizers behind the same detector interface.
 
 ### Excessive agency
 

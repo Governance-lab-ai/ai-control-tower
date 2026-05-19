@@ -1,4 +1,4 @@
-import type { AISystem, AISystemCreate, ApprovalStatus } from "@/lib/types";
+import type { AISystem, AISystemCreate, ApprovalStatus, GovernanceRunRequest, GovernanceRunResponse, Incident, ModelRun } from "@/lib/types";
 
 const PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const SERVER_API_BASE_URL = process.env.NEXT_PRIVATE_API_BASE_URL ?? PUBLIC_API_BASE_URL;
@@ -63,4 +63,31 @@ export async function updateApprovalStatus(id: string, approvalStatus: ApprovalS
     method: "PATCH",
     body: JSON.stringify({ approval_status: approvalStatus }),
   });
+}
+
+export async function runGovernanceGateway(payload: GovernanceRunRequest): Promise<GovernanceRunResponse> {
+  return apiFetch<GovernanceRunResponse>("/governance/run", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getModelRuns(): Promise<ModelRun[]> {
+  return apiFetch<ModelRun[]>("/model-runs", { cache: "no-store" });
+}
+
+export async function getModelRun(id: string): Promise<ModelRun> {
+  return apiFetch<ModelRun>(`/model-runs/${id}`, { cache: "no-store" });
+}
+
+export async function getSystemRuns(systemId: string): Promise<ModelRun[]> {
+  return apiFetch<ModelRun[]>(`/ai-systems/${systemId}/runs`, { cache: "no-store" });
+}
+
+export async function getIncidents(): Promise<Incident[]> {
+  return apiFetch<Incident[]>("/incidents", { cache: "no-store" });
+}
+
+export async function getSystemIncidents(systemId: string): Promise<Incident[]> {
+  return apiFetch<Incident[]>(`/ai-systems/${systemId}/incidents`, { cache: "no-store" });
 }

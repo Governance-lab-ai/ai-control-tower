@@ -154,6 +154,14 @@ The gateway evaluates:
 - Retrieval document sensitivity.
 - Provider availability.
 
+Planned control services:
+
+- PII detection using Microsoft Presidio/Presidio where available, plus regex, NER, and entity detection fallback.
+- Prompt injection detection covering jailbreak attempts, suspicious prompt heuristics, and tool restriction logic.
+- Redaction before LLM execution for names, emails, phone numbers, and account numbers.
+- Role-based access for admin, analyst, reviewer, and auditor workflows.
+- Audit capture for prompts, outputs, retrieved docs, approvals, costs, and reviewer actions.
+
 Route decisions:
 
 ```text
@@ -162,6 +170,46 @@ allow_with_review
 hold_for_review
 block
 ```
+
+### Episode 3 and 4 local gateway rules
+
+Episode 3 implements the first runtime gateway at `POST /governance/run`. Episode 4 adds persistent run logging for executed calls.
+
+| Approval status | Gateway status | Execution behaviour |
+|---|---|---|
+| `approved` | `executed` | Calls `LocalMockLLMProvider` and returns mock output. |
+| `pending` | `requires_review` | Does not execute. A model-run shell and governance audit event are recorded. |
+| `blocked` | `blocked` | Does not execute. A model-run shell and governance audit event are recorded. |
+| `retired` | `blocked` | Does not execute. A model-run shell and governance audit event are recorded. |
+| missing system | HTTP 404 | Returns `AI_SYSTEM_NOT_FOUND`. |
+
+Provider boundary:
+
+- `LLMProvider` is the backend interface for model execution.
+- `LocalMockLLMProvider` is the only active Episode 3 implementation.
+- `AzureOpenAIProvider` is a placeholder and must not require credentials until the Azure integration phase.
+
+Audit behaviour:
+
+- Executed gateway calls record `governance.run.executed`.
+- Blocked calls record `governance.run.blocked`.
+- Pending calls record `governance.run.requires_review`.
+- Executed calls create `model_runs` records with prompt, input, output, provider metadata, latency, mock cost, and status.
+- Supplied retrieved documents are stored as `retrieved_documents` linked to the model run.
+- Blocked and pending calls create model-run shell records with no output, zero cost, zero latency, and `model_version` set to `not_executed`.
+- Gateway runs link the active prompt version when one exists. Newly registered systems receive a default active `v1` prompt version.
+
+## V2 multi-agent governance model
+
+The V2 direction is a genuine multi-agent governance system. Agents are bounded backend services with typed contracts, explicit permissions, observable decisions, and audit events. They should not silently change approval states or execute model/provider calls outside the gateway.
+
+| Agent | Responsibilities |
+|---|---|
+| Retrieval Agent | Semantic retrieval, hybrid retrieval, reranking, source grounding. |
+| Evaluation Agent | Hallucination scoring, groundedness, policy validation, confidence scoring. |
+| Compliance Agent | PII detection, policy checks, prompt injection detection, output sanitisation. |
+| Human Review Agent | Escalate risky outputs, route to reviewer, generate audit summary, maintain approval workflow. |
+| Reporting Agent | Telemetry, cost tracking, latency metrics, weekly insights. |
 
 ## Dynamic risk scoring
 
@@ -211,7 +259,8 @@ Checks:
 
 | Check | What it detects | MVP implementation |
 |---|---|---|
-| Output PII | Sensitive data in generated output. | Regex/heuristics. |
+| Input PII | Synthetic personal data in user input. | Local regex detector. |
+| Output PII | Sensitive data in generated output. | Local regex detector. |
 | Output safety | Harmful/toxic/policy-violating text. | Heuristic/local provider. |
 | Groundedness | Output unsupported by retrieved docs. | Source overlap heuristic. |
 | Relevance | Output does not answer the request. | Keyword/embedding heuristic later. |
@@ -225,6 +274,25 @@ Evaluation result should include:
 - Flags.
 - Explanation.
 - Evidence snippets where safe.
+
+### Episode 5 local PII rules
+
+Episode 5 uses `HybridLocalPIIDetector`, a free local heuristic detector intended for synthetic demo data and obvious structured patterns only.
+
+Detected patterns:
+
+- Email addresses.
+- Phone numbers.
+- Labelled names, for example `Customer name: Alex Morgan`.
+- Labelled account IDs, for example `Account ID: ACCT-12345`.
+- Labelled addresses, for example `Address: 10 Demo Street`.
+- Labelled dates of birth, postal codes, and national IDs.
+- IBAN-like bank account values.
+- Payment-card-like values that pass a Luhn checksum.
+
+If input PII is detected, the run stores `input_pii_result`, creates a `pii_detected_input` incident, and routes the run to review when execution occurs. If output PII is detected, the run stores `output_pii_result`, creates a `pii_detected_output` incident, and routes the run to review.
+
+Detector output uses redacted snippets such as `[REDACTED_EMAIL]`. The local detector also exposes a full-text redaction utility for future pre-LLM redaction. This is not comprehensive PII detection and must not be described as a compliance guarantee.
 - Review requirement.
 
 ## Human review routing

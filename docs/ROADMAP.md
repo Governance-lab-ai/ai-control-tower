@@ -72,13 +72,14 @@ Estimated duration: 1–2 weeks.
 
 Deliverables:
 
-- `POST /api/v1/governance/run`.
+- `POST /governance/run`.
 - Mock LLM provider.
 - Model run table.
 - Retrieved document table.
 - Cost and latency capture.
 - Prompt version linkage.
 - Pre-execution checks for approval status and prompt policy.
+- Pre-LLM redaction layer for names, emails, phone numbers, and account numbers.
 - Run detail view.
 
 Acceptance criteria:
@@ -96,8 +97,9 @@ Estimated duration: 1–2 weeks.
 
 Deliverables:
 
-- Local PII detector.
-- Prompt injection/policy detector.
+- PII detector using Microsoft Presidio/Presidio where available, with regex, NER, and entity detection fallback.
+- Prompt injection/policy detector with jailbreak detection, suspicious prompt heuristics, and tool restriction logic.
+- Redaction pipeline before provider calls for names, emails, phone numbers, and account numbers.
 - Output safety heuristic.
 - Groundedness/retrieval overlap heuristic.
 - Evaluation score model.
@@ -107,6 +109,8 @@ Deliverables:
 Acceptance criteria:
 
 - PII in input/output is detected and flagged.
+- Sensitive values are redacted before LLM execution where configured.
+- Jailbreak attempts and suspicious tool-use instructions are detected and routed.
 - Risky outputs route to review.
 - Failed evaluations are visible in dashboard.
 - Evaluation scores are explained, not just shown.
@@ -222,6 +226,57 @@ Possible deliverables:
 - Multi-tenant isolation.
 - Terraform/Bicep infrastructure.
 
+## V2 — Multi-agent governance system
+
+**Goal:** evolve the Control Tower from a gateway-led MVP into a genuine multi-agent governance system with bounded, auditable agents.
+
+This is a V2 direction, not a requirement for the local MVP. Each agent must have typed inputs and outputs, backend execution only, explicit permissions, and audit events.
+
+### Agent 1 — Retrieval Agent
+
+Responsibilities:
+
+- Semantic retrieval.
+- Hybrid retrieval.
+- Reranking.
+- Source grounding.
+
+### Agent 2 — Evaluation Agent
+
+Responsibilities:
+
+- Hallucination scoring.
+- Groundedness.
+- Policy validation.
+- Confidence scoring.
+
+### Agent 3 — Compliance Agent
+
+Responsibilities:
+
+- PII detection.
+- Policy checks.
+- Prompt injection detection.
+- Output sanitisation.
+
+### Agent 4 — Human Review Agent
+
+Responsibilities:
+
+- Escalate risky outputs.
+- Route to reviewer.
+- Generate audit summary.
+- Maintain approval workflow.
+
+### Agent 5 — Reporting Agent
+
+Responsibilities:
+
+- Telemetry.
+- Cost tracking.
+- Latency metrics.
+- Weekly insights.
+
 ## MVP scope boundary
 
 Include in MVP:
@@ -256,7 +311,11 @@ Exclude from MVP:
 - Approval status gate.
 - Governance gateway.
 - Model run log.
-- PII flag.
+- PII detection using Presidio/Microsoft Presidio where possible, plus regex, NER, and entity detection fallback.
+- Prompt injection detection including jailbreak detection, suspicious prompt heuristics, and tool restriction logic.
+- Redaction layer before LLM calls for names, emails, phone numbers, and account numbers.
+- Role-based access levels for admin, analyst, reviewer, and auditor.
+- Audit logs for prompts, outputs, retrieved docs, approvals, costs, and reviewer actions.
 - Evaluation score.
 - Review queue.
 - Incident list.

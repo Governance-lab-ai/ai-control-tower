@@ -179,6 +179,22 @@ sequenceDiagram
 
 ## Route decision model
 
+Episode 3 implements the first synchronous gateway endpoint at `POST /governance/run`. It enforces approval status before provider execution:
+
+- approved systems execute through the local mock LLM provider.
+- pending systems return `requires_review` without model execution.
+- blocked and retired systems return `blocked` without model execution.
+- missing systems return `AI_SYSTEM_NOT_FOUND`.
+
+The provider boundary is `LLMProvider`, currently backed by `LocalMockLLMProvider`. `AzureOpenAIProvider` exists only as a placeholder with TODOs and no credential requirement. OpenAI and Ollama are planned as backend adapters using the same interface; they must not be called from frontend code and must still pass through approval checks, PII checks, run logging, incidents, and audit events.
+
+Episode 4 persists executed gateway calls as model-run evidence:
+
+- `model_runs` stores prompt, input, output, provider, model, model version, status, latency, estimated cost, and timestamp.
+- `retrieved_documents` stores supplied retrieval context linked to the run.
+- Prompt version linkage uses the active prompt version for the system when one exists. Newly registered systems receive a default active `v1` prompt version.
+- Blocked and pending attempts create model-run shell records with no output, zero latency, zero cost, and linked retrieved documents.
+
 The gateway returns one of four route decisions:
 
 | Decision | Meaning | User-facing behaviour |

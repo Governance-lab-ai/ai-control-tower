@@ -4,7 +4,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.ai_systems import router as ai_systems_router
+from app.api.governance import router as governance_router
 from app.api.health import router as health_router
+from app.api.incidents import router as incidents_router
+from app.api.model_runs import router as model_runs_router
+from app.api.prompt_versions import router as prompt_versions_router
 from app.core.config import get_settings
 from app.db.init_db import init_db
 
@@ -35,6 +39,10 @@ def create_app() -> FastAPI:
     )
     app.include_router(health_router)
     app.include_router(ai_systems_router)
+    app.include_router(governance_router)
+    app.include_router(incidents_router)
+    app.include_router(model_runs_router)
+    app.include_router(prompt_versions_router)
     return app
 
 
