@@ -57,6 +57,15 @@ def test_hybrid_local_pii_detector_avoids_invalid_card_numbers() -> None:
     assert "payment_card" not in result.pii_types
 
 
+def test_hybrid_local_pii_detector_ignores_uuid_like_identifiers() -> None:
+    detector = HybridLocalPIIDetector()
+
+    result = detector.detect("Synthetic system id 6f6176d8-48f2-47f1-a7a0-ed56103a2123 was evaluated.")
+
+    assert result.pii_detected is False
+    assert result.pii_types == []
+
+
 def test_hybrid_local_pii_detector_can_redact_full_text() -> None:
     detector = HybridLocalPIIDetector()
 

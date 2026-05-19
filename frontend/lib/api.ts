@@ -1,4 +1,4 @@
-import type { AISystem, AISystemCreate, ApprovalStatus, GovernanceRunRequest, GovernanceRunResponse, Incident, ModelRun } from "@/lib/types";
+import type { AISystem, AISystemCreate, ApprovalStatus, Evaluation, GovernanceRunRequest, GovernanceRunResponse, Incident, ModelRun } from "@/lib/types";
 
 const PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const SERVER_API_BASE_URL = process.env.NEXT_PRIVATE_API_BASE_URL ?? PUBLIC_API_BASE_URL;
@@ -78,6 +78,11 @@ export async function getModelRuns(): Promise<ModelRun[]> {
 
 export async function getModelRun(id: string): Promise<ModelRun> {
   return apiFetch<ModelRun>(`/model-runs/${id}`, { cache: "no-store" });
+}
+
+export async function getEvaluations(failedOnly = false): Promise<Evaluation[]> {
+  const query = failedOnly ? "?failed_only=true" : "";
+  return apiFetch<Evaluation[]>(`/evaluations${query}`, { cache: "no-store" });
 }
 
 export async function getSystemRuns(systemId: string): Promise<ModelRun[]> {

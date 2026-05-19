@@ -40,7 +40,27 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
         </Panel>
 
         <Panel className="p-5 md:col-span-8">
-          <h2 className="text-base font-semibold text-[#E6EEF8]">PII Flags</h2>
+          <h2 className="text-base font-semibold text-[#E6EEF8]">Evaluation</h2>
+          {run.evaluation ? (
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <ScoreCard label="Overall" value={run.evaluation.evaluation_score} threshold={run.evaluation.threshold} />
+              <ScoreCard label="Relevance" value={run.evaluation.relevance_score} />
+              <ScoreCard label="Groundedness" value={run.evaluation.groundedness_score} />
+              <div className="rounded-lg border border-line-700 bg-navy-900 p-4 md:col-span-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={run.evaluation.requires_human_review ? "text-xs font-semibold text-amber-200" : "text-xs font-semibold text-emerald-200"}>
+                    {run.evaluation.requires_human_review ? "Human review required" : "Evaluation passed"}
+                  </span>
+                  {run.evaluation.hallucination_flag ? <span className="text-xs font-semibold text-red-200">Hallucination flag</span> : null}
+                </div>
+                <p className="mt-3 text-sm leading-6 text-[#A8B8CA]">{run.evaluation.evaluation_summary}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-3 rounded-lg border border-line-700 bg-navy-900 p-4 text-sm text-[#A8B8CA]">No evaluation has been recorded for this run.</p>
+          )}
+
+          <h2 className="mt-6 text-base font-semibold text-[#E6EEF8]">PII Flags</h2>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <PiiResultCard label="Input" result={run.input_pii_result} />
             <PiiResultCard label="Output" result={run.output_pii_result} />
@@ -93,6 +113,16 @@ function Detail({ label, value, href }: { label: string; value: string; href?: s
 
 function EvidenceText({ value }: { value: string }) {
   return <p className="mt-3 whitespace-pre-wrap rounded-lg border border-line-700 bg-navy-900 p-4 text-sm leading-6 text-[#E6EEF8]">{value}</p>;
+}
+
+function ScoreCard({ label, value, threshold }: { label: string; value: number; threshold?: number }) {
+  return (
+    <div className="rounded-lg border border-line-700 bg-navy-900 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.04em] text-[#718198]">{label}</p>
+      <p className="mt-2 font-mono text-2xl font-semibold text-[#E6EEF8]">{value}/100</p>
+      {threshold !== undefined ? <p className="mt-1 text-xs text-[#A8B8CA]">Threshold {threshold}/100</p> : null}
+    </div>
+  );
 }
 
 function PiiResultCard({

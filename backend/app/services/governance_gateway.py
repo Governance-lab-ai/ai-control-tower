@@ -9,6 +9,7 @@ from app.models.ai_system import AISystem
 from app.providers.llm import LLMRequest, get_llm_provider
 from app.schemas.governance import GovernanceRunRequest, GovernanceRunResponse
 from app.services.audit import create_audit_event
+from app.services.evaluations import evaluate_model_run
 from app.services.incidents import create_pii_incident
 from app.services.model_runs import create_model_run, estimate_local_cost_usd
 from app.services.pii import PIIResult, get_pii_detector
@@ -75,7 +76,7 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
         return response
 
     try:
-        provider = get_llm_provider(settings.llm_provider)
+        provider = get_llm_provider(settings.llm_provider, settings)
         started_at = perf_counter()
         provider_response = provider.generate(
             LLMRequest(
@@ -109,7 +110,7 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
         provider_response.output_text,
         payload.retrieved_documents,
     )
-    create_model_run(
+    model_run = create_model_run(
         db,
         run_id=run_id,
         ai_system=system,
@@ -132,7 +133,16 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
     if output_pii_result.pii_detected:
         create_pii_incident(db, actor=payload.actor, ai_system_id=system.id, model_run_id=run_id, source="output", pii_result=output_pii_result)
 
-    gateway_status = "requires_review" if run_status == "requires_review" else "executed"
+    evaluation = evaluate_model_run(
+        db,
+        settings=settings,
+        ai_system=system,
+        model_run=model_run,
+        retrieved_documents=payload.retrieved_documents,
+        actor=payload.actor,
+    )
+
+    gateway_status = "requires_review" if model_run.status == "requires_review" else "executed"
     response = GovernanceRunResponse(
         run_id=run_id,
         status=gateway_status,
@@ -142,6 +152,8 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
             f"Linked active prompt version {active_prompt_version.version}." if active_prompt_version else "No active prompt version was linked.",
             f"Executed through provider {provider_response.provider} using model {provider_response.model}.",
             f"Model run logged with latency {latency_ms}ms and estimated cost ${cost_usd:.6f}.",
+            f"Evaluation score {evaluation.evaluation_score}/100; relevance {evaluation.relevance_score}/100; groundedness {evaluation.groundedness_score}/100.",
+            *(_evaluation_messages(evaluation.requires_human_review, evaluation.hallucination_flag, evaluation.threshold)),
             *_pii_messages("input", input_pii_result),
             *_pii_messages("output", output_pii_result),
         ],
@@ -187,6 +199,14 @@ def _pii_messages(source: str, result: PIIResult) -> list[str]:
         f"PII detected in {source}: {', '.join(result.pii_types)}.",
         f"Created PII incident with {result.confidence} confidence and redacted snippets.",
     ]
+
+
+def _evaluation_messages(requires_review: bool, hallucination_flag: bool, threshold: int) -> list[str]:
+    if not requires_review:
+        return [f"Evaluation passed the configured threshold of {threshold}/100."]
+    if hallucination_flag:
+        return ["Evaluation requires human review because a hallucination signal was detected."]
+    return [f"Evaluation requires human review because the score is below the configured threshold of {threshold}/100."]
 
 
 def _record_gateway_event(

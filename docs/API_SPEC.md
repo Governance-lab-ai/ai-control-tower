@@ -288,6 +288,20 @@ Response:
     "locations": [],
     "confidence": "low"
   },
+  "evaluation": {
+    "id": "44444444-4444-4444-4444-444444444444",
+    "model_run_id": "22222222-2222-2222-2222-222222222222",
+    "ai_system_id": "11111111-1111-1111-1111-111111111111",
+    "provider": "local_heuristic",
+    "evaluation_score": 82,
+    "relevance_score": 88,
+    "groundedness_score": 74,
+    "hallucination_flag": false,
+    "evaluation_summary": "Local heuristic evaluation signal.",
+    "requires_human_review": false,
+    "threshold": 70,
+    "created_at": "2026-05-19T10:00:00Z"
+  },
   "created_at": "2026-05-19T10:00:00Z",
   "retrieved_documents": [
     {
@@ -318,7 +332,7 @@ Detected patterns:
 - Account IDs with labels such as `Account ID:`.
 - Addresses with labels such as `Address:`.
 - Dates of birth, national IDs, and postal codes with labels.
-- IBAN-like values.
+- Spaced IBAN-like values.
 - Payment-card-like values that pass a Luhn checksum.
 
 If PII is detected in input or output:
@@ -489,13 +503,25 @@ Returns full detail for authorised users:
 
 ## Evaluations
 
-### `GET /api/v1/evaluations/failed`
+Episode 6 adds local prototype evaluations for executed model runs. Every executed gateway call creates one evaluation record.
 
-Returns failed or review-required evaluations.
+### `GET /evaluations`
 
-### `GET /api/v1/model-runs/{run_id}/evaluation`
+Returns evaluations, newest first. Use `?failed_only=true` to return only evaluations that require human review.
 
-Returns evaluation result for a run.
+### `GET /evaluations/{evaluation_id}`
+
+Returns one evaluation.
+
+Evaluation fields:
+
+- `evaluation_score`: weighted local score from 0 to 100.
+- `relevance_score`: token-overlap relevance signal from 0 to 100.
+- `groundedness_score`: retrieved-context overlap signal from 0 to 100.
+- `hallucination_flag`: local heuristic flag for explicit unsupported-claim signals or very weak grounding.
+- `requires_human_review`: true when the score is below the configured risk threshold or hallucination is flagged.
+
+These are prototype governance signals, not proof that an answer is correct.
 
 ## Human reviews
 

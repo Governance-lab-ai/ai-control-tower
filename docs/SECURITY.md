@@ -245,7 +245,7 @@ Controls:
 Episode 5 local implementation:
 
 - Uses `HybridLocalPIIDetector` for synthetic demo patterns and obvious structured values only.
-- Detects emails, phone numbers, labelled names, labelled account IDs, labelled addresses, labelled dates of birth, labelled national IDs, labelled postal codes, IBAN-like values, and Luhn-valid payment-card-like values.
+- Detects emails, phone numbers, labelled names, labelled account IDs, labelled addresses, labelled dates of birth, labelled national IDs, labelled postal codes, spaced IBAN-like values, and Luhn-valid payment-card-like values.
 - Stores detector results with redacted snippets and confidence labels.
 - Creates PII incidents for detected input/output PII.
 - Is not comprehensive and must not be represented as legal, privacy, or regulatory assurance.

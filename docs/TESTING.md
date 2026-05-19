@@ -60,10 +60,12 @@ Test cases:
 
 Test cases:
 
-- Output with PII fails output PII check.
+- Every executed gateway run creates one evaluation.
 - Output unsupported by retrieved docs lowers groundedness score.
-- Empty output fails relevance.
+- Low scores route medium/high/critical systems to review according to thresholds.
+- Hallucination flags route runs to review.
 - Safe, relevant output passes.
+- Failed evaluations appear through `/evaluations?failed_only=true`.
 
 ### Audit logger
 
