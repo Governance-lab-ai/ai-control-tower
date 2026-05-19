@@ -46,7 +46,7 @@ def test_gateway_creates_evaluation_for_executed_run() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "executed"
-    assert any(message.startswith("Evaluation score") for message in body["governance_messages"])
+    assert "Evaluation queued for asynchronous local processing." in body["governance_messages"]
 
     with SessionLocal() as db:
         model_run = db.get(ModelRun, UUID(body["run_id"]))
@@ -71,7 +71,7 @@ def test_high_risk_low_score_evaluation_routes_run_to_review() -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert body["status"] == "requires_review"
+    assert body["status"] == "executed"
 
     with SessionLocal() as db:
         model_run = db.get(ModelRun, UUID(body["run_id"]))

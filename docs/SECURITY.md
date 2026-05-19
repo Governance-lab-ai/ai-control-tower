@@ -388,7 +388,7 @@ The MVP should not ship publicly unless:
 - There are no real secrets in the repo.
 - The local demo uses synthetic data only.
 - Backend enforces role checks for review, approval, incident, and export actions.
-- Model execution through the gateway creates model run, evaluation, and audit records.
+- Model execution through the gateway creates model run and audit records, then queues local evaluation.
 - Unapproved systems cannot execute.
 - Model output is safely rendered.
 - Critical state changes generate audit events.

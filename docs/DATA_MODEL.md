@@ -262,7 +262,7 @@ Episode 4 local MVP stores supplied retrieved document text as run evidence with
 
 ### `evaluations`
 
-Episode 6 local MVP creates one evaluation for every executed model run. Evaluations are prototype quality and grounding signals, not proof of correctness.
+Episode 6 local MVP queues one evaluation for every executed model run after the gateway response is prepared. Evaluations are prototype quality and grounding signals, not proof of correctness.
 
 | Column | Type | Notes |
 |---|---|---|

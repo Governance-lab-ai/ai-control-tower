@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import Settings
+from app.db.session import SessionLocal
 from app.models.ai_system import AISystem
 from app.models.evaluation import Evaluation
 from app.models.model_run import ModelRun
@@ -68,6 +69,33 @@ def evaluate_model_run(
         },
     )
     return evaluation
+
+
+def evaluate_model_run_by_id(
+    *,
+    settings: Settings,
+    ai_system_id: UUID,
+    model_run_id: UUID,
+    retrieved_documents: list[str],
+    actor: str,
+) -> None:
+    with SessionLocal() as db:
+        ai_system = db.get(AISystem, ai_system_id)
+        model_run = db.get(ModelRun, model_run_id)
+        if ai_system is None or model_run is None or model_run.output_text is None:
+            return
+        existing_evaluation = db.scalar(select(Evaluation).where(Evaluation.model_run_id == model_run_id))
+        if existing_evaluation is not None:
+            return
+        evaluate_model_run(
+            db,
+            settings=settings,
+            ai_system=ai_system,
+            model_run=model_run,
+            retrieved_documents=retrieved_documents,
+            actor=actor,
+        )
+        db.commit()
 
 
 def create_evaluation(db: Session, *, model_run: ModelRun, ai_system: AISystem, result: EvaluationResult) -> Evaluation:

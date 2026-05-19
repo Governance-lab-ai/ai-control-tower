@@ -503,7 +503,7 @@ Returns full detail for authorised users:
 
 ## Evaluations
 
-Episode 6 adds local prototype evaluations for executed model runs. Every executed gateway call creates one evaluation record.
+Episode 6 adds local prototype evaluations for executed model runs. Executed gateway calls queue asynchronous local evaluation after the run is logged. The evaluation record is usually available immediately in local development, but clients should treat it as eventually available.
 
 ### `GET /evaluations`
 

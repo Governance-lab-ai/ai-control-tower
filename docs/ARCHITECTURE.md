@@ -195,11 +195,12 @@ Episode 4 persists executed gateway calls as model-run evidence:
 - Prompt version linkage uses the active prompt version for the system when one exists. Newly registered systems receive a default active `v1` prompt version.
 - Blocked and pending attempts create model-run shell records with no output, zero latency, zero cost, and linked retrieved documents.
 
-Episode 6 creates one local evaluation for every executed model run:
+Episode 6 queues one local evaluation for every executed model run using FastAPI background tasks:
 
 - `evaluations` stores relevance, groundedness, overall score, hallucination flag, threshold, summary, and review requirement.
-- Failed evaluations mark the run `requires_review`.
+- Failed evaluations mark the run `requires_review` after the gateway response has been returned.
 - Thresholds are configurable by risk level.
+- This is an in-process local background task, not a durable queue. Later production work should move this to a worker backed by Azure Service Bus, Celery, or another queue.
 
 The gateway returns one of four route decisions:
 
@@ -351,7 +352,7 @@ MVP can store prompts and outputs in Postgres. For production, consider:
 
 ## Async pipeline extension
 
-For MVP, gateway processing can be synchronous. Later, introduce a queue:
+For MVP, provider execution remains synchronous, while post-run evaluation uses an in-process background task. Later, introduce a durable queue:
 
 ```text
 Gateway request → immediate pre-checks → model call → enqueue post-evaluations → return pending/complete state

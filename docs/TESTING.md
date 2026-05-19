@@ -60,7 +60,7 @@ Test cases:
 
 Test cases:
 
-- Every executed gateway run creates one evaluation.
+- Every executed gateway run queues one evaluation.
 - Output unsupported by retrieved docs lowers groundedness score.
 - Low scores route medium/high/critical systems to review according to thresholds.
 - Hallucination flags route runs to review.
