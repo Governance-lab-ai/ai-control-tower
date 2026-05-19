@@ -242,6 +242,14 @@ Controls:
 - Prevent reviewers from exporting data unless authorised.
 - Avoid sending unnecessary context to LLMs.
 
+Episode 5 local implementation:
+
+- Uses `LocalRegexPIIDetector` for synthetic demo patterns only.
+- Detects emails, phone numbers, labelled names, labelled account IDs, and labelled addresses.
+- Stores detector results with redacted snippets and confidence labels.
+- Creates PII incidents for detected input/output PII.
+- Is not comprehensive and must not be represented as legal, privacy, or regulatory assurance.
+
 ### Excessive agency
 
 Controls:

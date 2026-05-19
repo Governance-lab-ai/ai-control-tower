@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, Uuid
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -22,6 +22,8 @@ class ModelRun(Base):
     latency_ms: Mapped[int] = mapped_column(Integer, nullable=False)
     cost_usd: Mapped[float] = mapped_column(Float, nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    input_pii_result: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    output_pii_result: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     retrieved_documents: Mapped[list["RetrievedDocument"]] = relationship(

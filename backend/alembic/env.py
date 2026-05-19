@@ -3,10 +3,10 @@ from logging.config import fileConfig
 from alembic import context
 
 from app.core.config import get_settings
-from app.models import AISystem, AuditEvent, ModelRun, PromptVersion, RetrievedDocument
+from app.models import AISystem, AuditEvent, Incident, ModelRun, PromptVersion, RetrievedDocument
 from app.models.base import Base
 
-_ = (AISystem, AuditEvent, ModelRun, PromptVersion, RetrievedDocument)
+_ = (AISystem, AuditEvent, Incident, ModelRun, PromptVersion, RetrievedDocument)
 
 config = context.config
 if config.config_file_name is not None:

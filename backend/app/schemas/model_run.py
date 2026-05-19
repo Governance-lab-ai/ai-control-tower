@@ -33,5 +33,7 @@ class ModelRunResponse(BaseModel):
     latency_ms: int
     cost_usd: float
     status: ModelRunStatus
+    input_pii_result: dict
+    output_pii_result: dict
     created_at: datetime
     retrieved_documents: list[RetrievedDocumentResponse] = []

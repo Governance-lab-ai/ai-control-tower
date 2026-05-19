@@ -30,6 +30,8 @@ def create_model_run(
     cost_usd: float,
     status_: str,
     retrieved_documents: list[str],
+    input_pii_result: dict | None = None,
+    output_pii_result: dict | None = None,
 ) -> ModelRun:
     model_run = ModelRun(
         id=run_id or uuid4(),
@@ -44,6 +46,8 @@ def create_model_run(
         latency_ms=latency_ms,
         cost_usd=cost_usd,
         status=status_,
+        input_pii_result=input_pii_result or {},
+        output_pii_result=output_pii_result or {},
     )
     db.add(model_run)
     db.flush()

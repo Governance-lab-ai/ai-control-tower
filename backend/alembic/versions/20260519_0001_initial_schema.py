@@ -10,7 +10,7 @@ from collections.abc import Sequence
 from alembic import op
 from sqlalchemy import inspect
 
-from app.models import AISystem, AuditEvent, ModelRun, PromptVersion, RetrievedDocument
+from app.models import AISystem, AuditEvent, Incident, ModelRun, PromptVersion, RetrievedDocument
 from app.models.base import Base
 
 revision: str = "20260519_0001"
@@ -18,7 +18,7 @@ down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
-_ = (AISystem, AuditEvent, ModelRun, PromptVersion, RetrievedDocument)
+_ = (AISystem, AuditEvent, Incident, ModelRun, PromptVersion, RetrievedDocument)
 
 
 def upgrade() -> None:

@@ -25,6 +25,7 @@ This project shows the operational layer that a serious organisation needs aroun
 - Incidents, audit logs, exports, and dashboards.
 - Local-first development with Azure integration paths.
 - Persistent model run evidence for prompt, input, output, retrieval context, provider metadata, cost, and latency.
+- Local regex PII detection for synthetic demo patterns, with incident creation and redacted snippets.
 
 Planned governance controls include PII detection with Presidio/Microsoft Presidio plus regex, NER, and entity detection fallback; prompt injection and jailbreak detection; pre-LLM redaction for names, emails, phone numbers, and account numbers; role-based access for admin, analyst, reviewer, and auditor; and audit evidence for prompts, outputs, retrieved docs, approvals, costs, and reviewer actions.
 

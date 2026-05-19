@@ -1,11 +1,12 @@
 import Link from "next/link";
 
 import { AppShell } from "@/components/app-shell";
+import { IncidentsTable } from "@/components/incidents-table";
 import { ModelRunsTable } from "@/components/model-runs-table";
 import { ApprovalBadge, RiskBadge } from "@/components/registry-badges";
 import { PageHeader } from "@/components/ui/page-header";
 import { Panel } from "@/components/ui/panel";
-import { getSystem, getSystemRuns } from "@/lib/api";
+import { getSystem, getSystemIncidents, getSystemRuns } from "@/lib/api";
 import { formatBooleanYesNo, formatDateTime, formatRequired } from "@/lib/format";
 import { getNavItems } from "@/lib/navigation";
 import { ApprovalStatusControl } from "./approval-status-control";
@@ -13,7 +14,7 @@ import { TestRunPanel } from "./components/test-run-panel";
 
 export default async function SystemDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [system, runs] = await Promise.all([getSystem(id), getSystemRuns(id)]);
+  const [system, runs, incidents] = await Promise.all([getSystem(id), getSystemRuns(id), getSystemIncidents(id)]);
 
   return (
     <AppShell navItems={getNavItems("AI Systems")}>
@@ -77,6 +78,18 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
             </Link>
           </div>
           <ModelRunsTable runs={runs} />
+        </Panel>
+        <Panel className="md:col-span-12">
+          <div className="flex flex-col gap-2 border-b border-line-700 px-5 py-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-[#E6EEF8]">Incident Panel</h2>
+              <p className="mt-1 text-sm text-[#A8B8CA]">Governance incidents linked to this AI system.</p>
+            </div>
+            <Link href="/incidents" className="text-sm text-signal-cyan hover:text-[#E6EEF8]">
+              View all incidents
+            </Link>
+          </div>
+          <IncidentsTable incidents={incidents} />
         </Panel>
       </section>
     </AppShell>

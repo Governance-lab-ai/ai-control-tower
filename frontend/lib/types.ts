@@ -57,19 +57,49 @@ export type RetrievedDocument = {
 
 export type ModelRunStatus = "executed" | "failed" | "blocked" | "requires_review";
 
+export type PIIResult = {
+  pii_detected?: boolean;
+  pii_types?: string[];
+  locations?: Array<{
+    pii_type: string;
+    snippet: string;
+    start: number;
+    end: number;
+  }>;
+  confidence?: "low" | "medium" | "high";
+};
+
 export type ModelRun = {
   id: string;
   ai_system_id: string;
   prompt_version_id: string | null;
   prompt: string;
   input_text: string;
-  output_text: string;
+  output_text: string | null;
   model_provider: string;
   model_name: string;
   model_version: string;
   latency_ms: number;
   cost_usd: number;
   status: ModelRunStatus;
+  input_pii_result: PIIResult;
+  output_pii_result: PIIResult;
   created_at: string;
   retrieved_documents: RetrievedDocument[];
+};
+
+export type IncidentStatus = "open" | "under_review" | "resolved" | "dismissed";
+export type IncidentSeverity = "low" | "medium" | "high" | "critical";
+
+export type Incident = {
+  id: string;
+  ai_system_id: string;
+  model_run_id: string | null;
+  incident_type: string;
+  severity: IncidentSeverity;
+  title: string;
+  description: string;
+  status: IncidentStatus;
+  created_at: string;
+  updated_at: string;
 };

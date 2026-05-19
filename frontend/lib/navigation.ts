@@ -6,7 +6,7 @@ export function getNavItems(activeLabel: string) {
     { label: "AI Systems", href: "/systems", icon: Database, active: activeLabel === "AI Systems" },
     { label: "Runs", href: "/runs", icon: Activity, active: activeLabel === "Runs" },
     { label: "Reviews", href: "#", icon: ClipboardCheck, active: activeLabel === "Reviews" },
-    { label: "Incidents", href: "#", icon: AlertTriangle, active: activeLabel === "Incidents" },
+    { label: "Incidents", href: "/incidents", icon: AlertTriangle, active: activeLabel === "Incidents" },
     { label: "Audit", href: "#", icon: FileClock, active: activeLabel === "Audit" },
     { label: "Settings", href: "#", icon: Settings, active: activeLabel === "Settings" },
   ];

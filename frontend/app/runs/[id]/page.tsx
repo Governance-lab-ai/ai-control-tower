@@ -40,7 +40,13 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
         </Panel>
 
         <Panel className="p-5 md:col-span-8">
-          <h2 className="text-base font-semibold text-[#E6EEF8]">Prompt</h2>
+          <h2 className="text-base font-semibold text-[#E6EEF8]">PII Flags</h2>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <PiiResultCard label="Input" result={run.input_pii_result} />
+            <PiiResultCard label="Output" result={run.output_pii_result} />
+          </div>
+
+          <h2 className="mt-6 text-base font-semibold text-[#E6EEF8]">Prompt</h2>
           <EvidenceText value={run.prompt} />
           <h2 className="mt-6 text-base font-semibold text-[#E6EEF8]">Input</h2>
           <EvidenceText value={run.input_text} />
@@ -87,4 +93,43 @@ function Detail({ label, value, href }: { label: string; value: string; href?: s
 
 function EvidenceText({ value }: { value: string }) {
   return <p className="mt-3 whitespace-pre-wrap rounded-lg border border-line-700 bg-navy-900 p-4 text-sm leading-6 text-[#E6EEF8]">{value}</p>;
+}
+
+function PiiResultCard({
+  label,
+  result,
+}: {
+  label: string;
+  result: {
+    pii_detected?: boolean;
+    pii_types?: string[];
+    confidence?: string;
+    locations?: Array<{ snippet: string; pii_type: string }>;
+  };
+}) {
+  const detected = result?.pii_detected === true;
+  return (
+    <div className="rounded-lg border border-line-700 bg-navy-900 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.04em] text-[#718198]">{label}</p>
+        <span className={detected ? "text-xs font-semibold text-amber-200" : "text-xs font-semibold text-emerald-200"}>
+          {detected ? "PII detected" : "No PII detected"}
+        </span>
+      </div>
+      {detected ? (
+        <>
+          <p className="mt-3 text-sm text-[#E6EEF8]">
+            Types: {(result.pii_types ?? []).join(", ")} · Confidence: {result.confidence ?? "low"}
+          </p>
+          <ul className="mt-3 space-y-2 text-xs text-[#A8B8CA]">
+            {(result.locations ?? []).slice(0, 3).map((location) => (
+              <li key={`${location.pii_type}-${location.snippet}`} className="rounded-md border border-line-700 bg-panel-875 p-2">
+                {location.snippet}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+    </div>
+  );
 }

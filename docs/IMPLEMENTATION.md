@@ -352,6 +352,15 @@ Episode 4 logging additions:
 - `GET /model-runs`, `GET /model-runs/{run_id}`, and `GET /ai-systems/{system_id}/runs` expose run evidence for UI and review.
 - `GET /ai-systems/{system_id}/prompt-versions`, `POST /ai-systems/{system_id}/prompt-versions`, and `PATCH /prompt-versions/{prompt_version_id}/activate` manage prompt versions.
 
+Episode 5 PII and incident additions:
+
+- `PIIDetector` interface and `LocalRegexPIIDetector` implementation.
+- Input and output PII checks run in the governance gateway.
+- PII incidents are created for detected input/output PII.
+- Runs with detected PII are marked `requires_review`.
+- `/incidents` and `/ai-systems/{system_id}/incidents` expose incident evidence to the frontend.
+- Local detection is regex-based and not comprehensive.
+
 ### Phase D — Evaluation layer
 
 Implement local evaluators first:

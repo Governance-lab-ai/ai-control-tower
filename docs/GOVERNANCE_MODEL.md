@@ -259,7 +259,8 @@ Checks:
 
 | Check | What it detects | MVP implementation |
 |---|---|---|
-| Output PII | Sensitive data in generated output. | Regex/heuristics. |
+| Input PII | Synthetic personal data in user input. | Local regex detector. |
+| Output PII | Sensitive data in generated output. | Local regex detector. |
 | Output safety | Harmful/toxic/policy-violating text. | Heuristic/local provider. |
 | Groundedness | Output unsupported by retrieved docs. | Source overlap heuristic. |
 | Relevance | Output does not answer the request. | Keyword/embedding heuristic later. |
@@ -273,6 +274,22 @@ Evaluation result should include:
 - Flags.
 - Explanation.
 - Evidence snippets where safe.
+
+### Episode 5 local PII rules
+
+Episode 5 uses `LocalRegexPIIDetector`, a local heuristic detector intended for synthetic demo data only.
+
+Detected patterns:
+
+- Email addresses.
+- Phone numbers.
+- Labelled names, for example `Customer name: Alex Morgan`.
+- Labelled account IDs, for example `Account ID: ACCT-12345`.
+- Labelled addresses, for example `Address: 10 Demo Street`.
+
+If input PII is detected, the run stores `input_pii_result`, creates a `pii_detected_input` incident, and routes the run to review when execution occurs. If output PII is detected, the run stores `output_pii_result`, creates a `pii_detected_output` incident, and routes the run to review.
+
+Detector output uses redacted snippets such as `[REDACTED_EMAIL]`. This is not comprehensive PII detection and must not be described as a compliance guarantee.
 - Review requirement.
 
 ## Human review routing

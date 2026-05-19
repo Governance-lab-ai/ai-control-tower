@@ -276,6 +276,18 @@ Response:
   "latency_ms": 84,
   "cost_usd": 0.000065,
   "status": "executed",
+  "input_pii_result": {
+    "pii_detected": false,
+    "pii_types": [],
+    "locations": [],
+    "confidence": "low"
+  },
+  "output_pii_result": {
+    "pii_detected": false,
+    "pii_types": [],
+    "locations": [],
+    "confidence": "low"
+  },
   "created_at": "2026-05-19T10:00:00Z",
   "retrieved_documents": [
     {
@@ -293,6 +305,42 @@ Response:
 ### `GET /ai-systems/{system_id}/runs`
 
 Returns model runs for a selected AI system, newest first.
+
+## PII detection and incidents
+
+Episode 5 adds local regex PII checks before and after model execution. This is a prototype detector for synthetic demos, not comprehensive PII discovery.
+
+Detected patterns:
+
+- Email addresses.
+- Phone numbers.
+- Names with labels such as `Customer name:`.
+- Account IDs with labels such as `Account ID:`.
+- Addresses with labels such as `Address:`.
+
+If PII is detected in input or output:
+
+- The model run stores `input_pii_result` and/or `output_pii_result`.
+- The run status is set to `requires_review` for executed runs.
+- A PII incident is created with redacted snippets only.
+
+Synthetic demo input:
+
+```text
+Customer name: Alex Morgan. Email alex.morgan@example.test. Account ID: ACCT-12345.
+```
+
+### `GET /incidents`
+
+Returns all incidents, newest first.
+
+### `GET /incidents/{incident_id}`
+
+Returns one incident.
+
+### `GET /ai-systems/{system_id}/incidents`
+
+Returns incidents for a selected AI system.
 
 ## Data sources
 
