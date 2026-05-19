@@ -7,6 +7,7 @@ from app.api.ai_systems import router as ai_systems_router
 from app.api.evaluations import router as evaluations_router
 from app.api.governance import router as governance_router
 from app.api.health import router as health_router
+from app.api.human_reviews import router as human_reviews_router
 from app.api.incidents import router as incidents_router
 from app.api.model_runs import router as model_runs_router
 from app.api.prompt_versions import router as prompt_versions_router
@@ -42,6 +43,7 @@ def create_app() -> FastAPI:
     app.include_router(ai_systems_router)
     app.include_router(evaluations_router)
     app.include_router(governance_router)
+    app.include_router(human_reviews_router)
     app.include_router(incidents_router)
     app.include_router(model_runs_router)
     app.include_router(prompt_versions_router)

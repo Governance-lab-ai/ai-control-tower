@@ -119,3 +119,34 @@ export type Incident = {
   created_at: string;
   updated_at: string;
 };
+
+export type HumanReviewStatus = "pending" | "approved" | "rejected" | "escalated";
+export type HumanReviewDecision = "approved" | "rejected" | "escalated";
+export type HumanReviewPriority = "low" | "medium" | "high" | "critical";
+
+export type HumanReview = {
+  id: string;
+  ai_system_id: string;
+  model_run_id: string;
+  status: HumanReviewStatus;
+  reason: string;
+  priority: HumanReviewPriority;
+  summary: string;
+  reviewer_id: string | null;
+  reviewer_name: string | null;
+  decision_notes: string | null;
+  decided_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type HumanReviewDetail = HumanReview & {
+  model_run: ModelRun;
+};
+
+export type HumanReviewDecisionRequest = {
+  decision: HumanReviewDecision;
+  reviewer_id: string;
+  reviewer_name: string;
+  notes: string;
+};

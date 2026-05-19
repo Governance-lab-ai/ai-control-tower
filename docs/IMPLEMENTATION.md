@@ -372,6 +372,14 @@ Episode 6 evaluation additions:
 - `OllamaLLMProvider` can be enabled with `LLM_PROVIDER=ollama` when a local Ollama service is available.
 - `OllamaEvaluationProvider` can be enabled with `EVALUATION_PROVIDER=ollama_local` and falls back to semantic local evaluation if the local model is unavailable.
 
+Episode 7 human review additions:
+
+- `human_reviews` records are created for PII input flags, PII output flags, failed evaluations, hallucination flags, and high-risk systems that require human oversight.
+- Review records include status, reason, priority, summary, reviewer identity, decision notes, and decision timestamp.
+- `/reviews`, `/reviews/{review_id}`, and `/reviews/{review_id}/decision` expose the queue, evidence detail, and reviewer decision workflow.
+- Reviewer decisions create audit events with the reviewer identity, decision, notes, and timestamp.
+- The frontend includes `/reviews` for the pending queue and `/reviews/[id]` for evidence inspection and decision capture.
+
 ### Phase D — Evaluation layer
 
 Implement local evaluators first:

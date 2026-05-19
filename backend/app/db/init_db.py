@@ -2,11 +2,11 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy.orm import Session
 
-from app.models import AISystem, AuditEvent, Evaluation, Incident, ModelRun, PromptVersion, RetrievedDocument
+from app.models import AISystem, AuditEvent, Evaluation, HumanReview, Incident, ModelRun, PromptVersion, RetrievedDocument
 from app.db.session import engine
 from app.services.seed import seed_demo_systems
 
-_ = (AISystem, AuditEvent, Evaluation, Incident, ModelRun, PromptVersion, RetrievedDocument)
+_ = (AISystem, AuditEvent, Evaluation, HumanReview, Incident, ModelRun, PromptVersion, RetrievedDocument)
 
 
 def init_db() -> None:

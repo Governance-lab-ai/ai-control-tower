@@ -526,32 +526,52 @@ These are prototype governance signals, not proof that an answer is correct.
 
 ## Human reviews
 
-### `GET /api/v1/reviews`
+Episode 7 adds the local human review queue. Review items are created automatically from risky gateway/evaluation outcomes and can be decided by a reviewer.
+
+### `GET /reviews`
 
 Query params:
 
 ```text
 status
-risk_level
-system_id
-assigned_to
-page
-page_size
 ```
 
-### `GET /api/v1/reviews/{review_id}`
+Returns review rows, newest first. The MVP defaults to `status=pending`; pass another status to inspect decided reviews.
 
-Returns review detail including run evidence.
+Response item:
 
-### `PATCH /api/v1/reviews/{review_id}/decision`
+```json
+{
+  "id": "55555555-5555-5555-5555-555555555555",
+  "ai_system_id": "11111111-1111-1111-1111-111111111111",
+  "model_run_id": "22222222-2222-2222-2222-222222222222",
+  "status": "pending",
+  "reason": "pii_detected_output",
+  "priority": "high",
+  "summary": "Output PII was detected and requires reviewer confirmation.",
+  "reviewer_id": null,
+  "reviewer_name": null,
+  "decision_notes": null,
+  "decided_at": null,
+  "created_at": "2026-05-19T12:00:00Z",
+  "updated_at": "2026-05-19T12:00:00Z"
+}
+```
+
+### `GET /reviews/{review_id}`
+
+Returns review detail including linked model run evidence, retrieved documents, PII flags, and evaluation result.
+
+### `POST /reviews/{review_id}/decision`
 
 Request:
 
 ```json
 {
   "decision": "approved",
-  "notes": "Output is acceptable after confirming the email address is not included in the response.",
-  "final_output_override": null
+  "reviewer_id": "local-reviewer",
+  "reviewer_name": "Local Reviewer",
+  "notes": "Output is acceptable after confirming the email address is not included in the response."
 }
 ```
 
@@ -559,12 +579,24 @@ Response:
 
 ```json
 {
-  "id": "rev_001",
-  "status": "completed",
-  "decision": "approved",
-  "completed_at": "2026-05-12T10:45:00Z"
+  "id": "55555555-5555-5555-5555-555555555555",
+  "status": "approved",
+  "reviewer_id": "local-reviewer",
+  "reviewer_name": "Local Reviewer",
+  "decision_notes": "Output is acceptable after confirming the email address is not included in the response.",
+  "decided_at": "2026-05-19T12:10:00Z"
 }
 ```
+
+Decision values are `approved`, `rejected`, and `escalated`. Decisions are allowed only while the review is `pending`. The backend records `human_review.created` when a review is queued and `human_review.approved`, `human_review.rejected`, or `human_review.escalated` when a reviewer decides it.
+
+Automatic review creation rules:
+
+- PII detected in input.
+- PII detected in output.
+- Evaluation requires review because the score is below threshold.
+- Evaluation raises a hallucination flag.
+- High-risk systems with human oversight required generate output.
 
 ## Incidents
 

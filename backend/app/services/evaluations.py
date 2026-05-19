@@ -11,6 +11,7 @@ from app.models.evaluation import Evaluation
 from app.models.model_run import ModelRun
 from app.providers.evaluation import EvaluationRequest, EvaluationResult, get_evaluation_provider
 from app.services.audit import create_audit_event
+from app.services.human_reviews import create_review_for_evaluation
 
 
 def threshold_for_risk(settings: Settings, risk_level: str) -> int:
@@ -68,6 +69,7 @@ def evaluate_model_run(
             "threshold": evaluation.threshold,
         },
     )
+    create_review_for_evaluation(db, actor=actor, ai_system=ai_system, model_run=model_run, evaluation=evaluation)
     return evaluation
 
 

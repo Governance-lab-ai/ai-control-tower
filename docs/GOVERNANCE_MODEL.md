@@ -327,14 +327,20 @@ Detector output uses redacted snippets such as `[REDACTED_EMAIL]`. The local det
 
 ## Human review routing
 
-Create human review if:
+Episode 7 implements local human review records. The review queue is not a policy label; it is an operational workflow where a reviewer inspects run evidence, risk flags, evaluation output, linked incidents, and retrieved documents before recording a decision.
 
-- System requires human oversight and output was generated.
-- PII detected in output.
+Implemented local review creation rules:
+
+- PII is detected in the input.
+- PII is detected in the output.
+- Evaluation score is below the configured threshold.
+- Evaluation raises a hallucination flag.
+- System risk level is `high` and `human_oversight_required` is true.
+
+Planned future routing rules:
+
 - Prompt injection detected.
-- Hallucination/groundedness flag triggered.
-- Evaluation score below threshold.
-- High-risk system generates output.
+- Critical risk system generates output.
 - Reviewer is explicitly requested.
 
 Review priorities:
@@ -345,6 +351,17 @@ Review priorities:
 | High | PII output, jailbreak, high-risk system. |
 | Medium | Hallucination, medium risk with failed eval. |
 | Low | Low relevance, minor formatting issues. |
+
+Decision statuses:
+
+| Status | Meaning |
+|---|---|
+| `pending` | Awaiting reviewer decision. |
+| `approved` | Reviewer accepted the run evidence/output. |
+| `rejected` | Reviewer rejected the run evidence/output. |
+| `escalated` | Reviewer routed the case for higher-level handling. |
+
+Reviewer decisions require reviewer ID, reviewer name, notes, and timestamp. Each decision records an audit event. Rejected and escalated runs remain marked `requires_review`.
 
 ## Incident creation policy
 
