@@ -70,14 +70,18 @@ def create_model_run(
 def list_model_runs(db: Session) -> list[ModelRun]:
     statement = (
         select(ModelRun)
-        .options(selectinload(ModelRun.retrieved_documents))
+        .options(selectinload(ModelRun.retrieved_documents), selectinload(ModelRun.evaluation))
         .order_by(ModelRun.created_at.desc())
     )
     return list(db.scalars(statement).all())
 
 
 def get_model_run(db: Session, run_id: UUID) -> ModelRun:
-    statement = select(ModelRun).options(selectinload(ModelRun.retrieved_documents)).where(ModelRun.id == run_id)
+    statement = (
+        select(ModelRun)
+        .options(selectinload(ModelRun.retrieved_documents), selectinload(ModelRun.evaluation))
+        .where(ModelRun.id == run_id)
+    )
     model_run = db.scalars(statement).first()
     if model_run is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"code": "MODEL_RUN_NOT_FOUND"})
@@ -91,7 +95,7 @@ def list_model_runs_for_system(db: Session, system_id: UUID) -> list[ModelRun]:
 
     statement = (
         select(ModelRun)
-        .options(selectinload(ModelRun.retrieved_documents))
+        .options(selectinload(ModelRun.retrieved_documents), selectinload(ModelRun.evaluation))
         .where(ModelRun.ai_system_id == system_id)
         .order_by(ModelRun.created_at.desc())
     )

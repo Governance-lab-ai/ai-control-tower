@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EvaluationBadge } from "@/components/evaluation-badge";
 import { RunStatusBadge } from "@/components/run-status-badge";
 import { formatCurrencyUsd, formatDateTime, formatLatency } from "@/lib/format";
 import type { ModelRun } from "@/lib/types";
@@ -25,6 +26,7 @@ export function ModelRunsTable({
             <th className="px-5 py-3 font-semibold">Model</th>
             <th className="px-5 py-3 font-semibold">Cost</th>
             <th className="px-5 py-3 font-semibold">Latency</th>
+            <th className="px-5 py-3 font-semibold">Evaluation</th>
             <th className="px-5 py-3 font-semibold">Status</th>
             <th className="px-5 py-3 font-semibold">Created</th>
           </tr>
@@ -51,6 +53,9 @@ export function ModelRunsTable({
               </td>
               <td className="px-5 py-4 font-mono text-xs text-[#E6EEF8]">{formatCurrencyUsd(run.cost_usd)}</td>
               <td className="px-5 py-4 font-mono text-xs text-[#E6EEF8]">{formatLatency(run.latency_ms)}</td>
+              <td className="px-5 py-4">
+                <EvaluationBadge evaluation={run.evaluation} />
+              </td>
               <td className="px-5 py-4">
                 <RunStatusBadge status={run.status} />
               </td>

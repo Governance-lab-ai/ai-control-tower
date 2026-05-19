@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.evaluation import EvaluationResponse
+
 ModelRunStatus = Literal["executed", "failed", "blocked", "requires_review"]
 
 
@@ -37,3 +39,4 @@ class ModelRunResponse(BaseModel):
     output_pii_result: dict
     created_at: datetime
     retrieved_documents: list[RetrievedDocumentResponse] = []
+    evaluation: EvaluationResponse | None = None

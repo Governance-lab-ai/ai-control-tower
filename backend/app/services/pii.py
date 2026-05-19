@@ -156,7 +156,7 @@ class HybridLocalPIIDetector(PIIDetector):
         ),
         (
             "iban",
-            re.compile(r"\b[A-Z]{2}\d{2}\s?(?:[A-Z0-9]{2,4}\s?){3,8}\b", re.IGNORECASE),
+            re.compile(r"\b[A-Z]{2}\d{2}\s+(?:[A-Z0-9]{2,4}\s+){2,7}[A-Z0-9]{2,4}\b", re.IGNORECASE),
         ),
     )
     payment_card_pattern = re.compile(r"(?<!\d)(?:\d[ -]?){13,19}(?!\d)")

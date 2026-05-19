@@ -275,6 +275,28 @@ Evaluation result should include:
 - Explanation.
 - Evidence snippets where safe.
 
+### Episode 6 local evaluation rules
+
+Episode 6 uses `LocalEvaluationProvider`, a deterministic local evaluator intended for prototype signals only.
+
+Dimensions:
+
+- `relevance_score`: token overlap between prompt/input terms and output terms.
+- `groundedness_score`: token overlap between output terms and supplied retrieved documents. Runs without retrieved documents receive a conservative local grounding score.
+- `hallucination_flag`: true when output contains explicit unsupported-claim signals or when retrieved context exists and grounding is very weak.
+- `evaluation_score`: weighted score using relevance and groundedness.
+
+Risk-adjusted default thresholds:
+
+| Risk level | Threshold |
+|---|---:|
+| low | 55 |
+| medium | 70 |
+| high | 80 |
+| critical | 90 |
+
+If the score falls below the threshold or the hallucination flag is true, the model run is marked `requires_review`. These checks are governance heuristics, not proof of truth, safety, or compliance.
+
 ### Episode 5 local PII rules
 
 Episode 5 uses `HybridLocalPIIDetector`, a free local heuristic detector intended for synthetic demo data and obvious structured patterns only.
@@ -287,7 +309,7 @@ Detected patterns:
 - Labelled account IDs, for example `Account ID: ACCT-12345`.
 - Labelled addresses, for example `Address: 10 Demo Street`.
 - Labelled dates of birth, postal codes, and national IDs.
-- IBAN-like bank account values.
+- Spaced IBAN-like bank account values.
 - Payment-card-like values that pass a Luhn checksum.
 
 If input PII is detected, the run stores `input_pii_result`, creates a `pii_detected_input` incident, and routes the run to review when execution occurs. If output PII is detected, the run stores `output_pii_result`, creates a `pii_detected_output` incident, and routes the run to review.

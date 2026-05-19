@@ -1,7 +1,7 @@
 import uuid
 from time import perf_counter
 
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -9,13 +9,19 @@ from app.models.ai_system import AISystem
 from app.providers.llm import LLMRequest, get_llm_provider
 from app.schemas.governance import GovernanceRunRequest, GovernanceRunResponse
 from app.services.audit import create_audit_event
+from app.services.evaluations import evaluate_model_run_by_id
 from app.services.incidents import create_pii_incident
 from app.services.model_runs import create_model_run, estimate_local_cost_usd
 from app.services.pii import PIIResult, get_pii_detector
 from app.services.prompt_versions import get_active_prompt_version
 
 
-def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceRunRequest) -> GovernanceRunResponse:
+def run_governance_gateway(
+    db: Session,
+    settings: Settings,
+    payload: GovernanceRunRequest,
+    background_tasks: BackgroundTasks | None = None,
+) -> GovernanceRunResponse:
     system = db.get(AISystem, payload.ai_system_id)
     if system is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"code": "AI_SYSTEM_NOT_FOUND"})
@@ -75,7 +81,7 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
         return response
 
     try:
-        provider = get_llm_provider(settings.llm_provider)
+        provider = get_llm_provider(settings.llm_provider, settings)
         started_at = perf_counter()
         provider_response = provider.generate(
             LLMRequest(
@@ -132,6 +138,16 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
     if output_pii_result.pii_detected:
         create_pii_incident(db, actor=payload.actor, ai_system_id=system.id, model_run_id=run_id, source="output", pii_result=output_pii_result)
 
+    if background_tasks is not None:
+        background_tasks.add_task(
+            evaluate_model_run_by_id,
+            settings=settings,
+            ai_system_id=system.id,
+            model_run_id=run_id,
+            retrieved_documents=payload.retrieved_documents,
+            actor=payload.actor,
+        )
+
     gateway_status = "requires_review" if run_status == "requires_review" else "executed"
     response = GovernanceRunResponse(
         run_id=run_id,
@@ -142,6 +158,7 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
             f"Linked active prompt version {active_prompt_version.version}." if active_prompt_version else "No active prompt version was linked.",
             f"Executed through provider {provider_response.provider} using model {provider_response.model}.",
             f"Model run logged with latency {latency_ms}ms and estimated cost ${cost_usd:.6f}.",
+            "Evaluation queued for asynchronous local processing.",
             *_pii_messages("input", input_pii_result),
             *_pii_messages("output", output_pii_result),
         ],

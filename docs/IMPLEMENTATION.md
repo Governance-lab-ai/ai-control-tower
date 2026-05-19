@@ -361,6 +361,16 @@ Episode 5 PII and incident additions:
 - `/incidents` and `/ai-systems/{system_id}/incidents` expose incident evidence to the frontend.
 - Local detection uses free deterministic recognizers, label-aware rules, redaction, and Luhn validation for card-like values. It is not comprehensive.
 
+Episode 6 evaluation additions:
+
+- `EvaluationProvider` interface and `LocalEvaluationProvider` implementation.
+- Every executed gateway call queues asynchronous evaluation after creating the `model_runs` record.
+- Evaluation records include overall score, relevance score, groundedness score, hallucination flag, summary, threshold, and review requirement.
+- Medium, high, and critical risk systems use stricter configurable thresholds.
+- Runs with failed evaluations are marked `requires_review` by the background task.
+- `/evaluations?failed_only=true` exposes failed evaluation signals to the frontend.
+- `OllamaLLMProvider` can be enabled with `LLM_PROVIDER=ollama` when a local Ollama service is available.
+
 ### Phase D — Evaluation layer
 
 Implement local evaluators first:
@@ -381,7 +391,7 @@ Do not present these as perfect. They are MVP governance signals.
 
 Acceptance criteria:
 
-- Every run has an evaluation record.
+- Every executed run queues an evaluation record.
 - Evaluation result contains enough detail for human reviewers.
 - Evaluation thresholds are configurable.
 

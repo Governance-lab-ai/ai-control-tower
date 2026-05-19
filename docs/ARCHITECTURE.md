@@ -186,7 +186,7 @@ Episode 3 implements the first synchronous gateway endpoint at `POST /governance
 - blocked and retired systems return `blocked` without model execution.
 - missing systems return `AI_SYSTEM_NOT_FOUND`.
 
-The provider boundary is `LLMProvider`, currently backed by `LocalMockLLMProvider`. `AzureOpenAIProvider` exists only as a placeholder with TODOs and no credential requirement. OpenAI and Ollama are planned as backend adapters using the same interface; they must not be called from frontend code and must still pass through approval checks, PII checks, run logging, incidents, and audit events.
+The provider boundary is `LLMProvider`, currently backed by `LocalMockLLMProvider`. `OllamaLLMProvider` is available for optional local model execution when `LLM_PROVIDER=ollama` and a local Ollama service is running. `AzureOpenAIProvider` exists only as a placeholder with TODOs and no credential requirement. OpenAI remains planned as a backend adapter using the same interface. No provider may be called from frontend code; all providers must still pass through approval checks, PII checks, run logging, incidents, evaluations, and audit events.
 
 Episode 4 persists executed gateway calls as model-run evidence:
 
@@ -194,6 +194,13 @@ Episode 4 persists executed gateway calls as model-run evidence:
 - `retrieved_documents` stores supplied retrieval context linked to the run.
 - Prompt version linkage uses the active prompt version for the system when one exists. Newly registered systems receive a default active `v1` prompt version.
 - Blocked and pending attempts create model-run shell records with no output, zero latency, zero cost, and linked retrieved documents.
+
+Episode 6 queues one local evaluation for every executed model run using FastAPI background tasks:
+
+- `evaluations` stores relevance, groundedness, overall score, hallucination flag, threshold, summary, and review requirement.
+- Failed evaluations mark the run `requires_review` after the gateway response has been returned.
+- Thresholds are configurable by risk level.
+- This is an in-process local background task, not a durable queue. Later production work should move this to a worker backed by Azure Service Bus, Celery, or another queue.
 
 The gateway returns one of four route decisions:
 
@@ -345,7 +352,7 @@ MVP can store prompts and outputs in Postgres. For production, consider:
 
 ## Async pipeline extension
 
-For MVP, gateway processing can be synchronous. Later, introduce a queue:
+For MVP, provider execution remains synchronous, while post-run evaluation uses an in-process background task. Later, introduce a durable queue:
 
 ```text
 Gateway request → immediate pre-checks → model call → enqueue post-evaluations → return pending/complete state

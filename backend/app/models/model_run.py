@@ -32,6 +32,12 @@ class ModelRun(Base):
         cascade="all, delete-orphan",
         order_by="RetrievedDocument.ordinal",
     )
+    evaluation: Mapped["Evaluation | None"] = relationship(
+        "Evaluation",
+        back_populates="model_run",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
 
 
 class RetrievedDocument(Base):

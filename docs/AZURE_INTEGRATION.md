@@ -46,7 +46,7 @@ Goal:
 
 ## Phase 2 — Azure OpenAI adapter
 
-Before this phase, local provider work can add `OllamaLLMProvider` and `OpenAILLMProvider` behind the same `LLMProvider` interface. That keeps the gateway path identical: approval checks, PII checks, model-run logging, incidents, and audit events remain mandatory regardless of the execution backend.
+Before this phase, local provider work can use `OllamaLLMProvider` and later add `OpenAILLMProvider` behind the same `LLMProvider` interface. That keeps the gateway path identical: approval checks, PII checks, model-run logging, incidents, evaluations, and audit events remain mandatory regardless of the execution backend.
 
 Implement:
 

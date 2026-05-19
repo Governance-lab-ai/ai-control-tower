@@ -69,6 +69,21 @@ export type PIIResult = {
   confidence?: "low" | "medium" | "high";
 };
 
+export type Evaluation = {
+  id: string;
+  model_run_id: string;
+  ai_system_id: string;
+  provider: string;
+  evaluation_score: number;
+  relevance_score: number;
+  groundedness_score: number;
+  hallucination_flag: boolean;
+  evaluation_summary: string;
+  requires_human_review: boolean;
+  threshold: number;
+  created_at: string;
+};
+
 export type ModelRun = {
   id: string;
   ai_system_id: string;
@@ -86,6 +101,7 @@ export type ModelRun = {
   output_pii_result: PIIResult;
   created_at: string;
   retrieved_documents: RetrievedDocument[];
+  evaluation: Evaluation | null;
 };
 
 export type IncidentStatus = "open" | "under_review" | "resolved" | "dismissed";

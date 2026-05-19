@@ -260,14 +260,24 @@ Episode 4 local MVP stores supplied retrieved document text as run evidence with
 | `score` | numeric nullable | Retrieval score. |
 | `metadata` | jsonb | Source metadata. |
 
-### `evaluation_results`
+### `evaluations`
+
+Episode 6 local MVP queues one evaluation for every executed model run after the gateway response is prepared. Evaluations are prototype quality and grounding signals, not proof of correctness.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | UUID PK | Evaluation ID. |
 | `model_run_id` | UUID FK unique | One evaluation per run for MVP. |
-| `pii_detected` | boolean | Any PII in input/output. |
-| `pii_types` | jsonb | Types only, not values. |
+| `ai_system_id` | UUID FK | Owning AI system. |
+| `provider` | text | `local_heuristic` for Episode 6. |
+| `evaluation_score` | integer | Overall score from 0 to 100. |
+| `relevance_score` | integer | Relevance signal from 0 to 100. |
+| `groundedness_score` | integer | Retrieved-context grounding signal from 0 to 100. |
+| `hallucination_flag` | boolean | Local heuristic flag. |
+| `evaluation_summary` | text | Human-readable explanation. |
+| `requires_human_review` | boolean | Review routing signal. |
+| `threshold` | integer | Risk-adjusted threshold used. |
+| `created_at` | timestamptz | Evaluation timestamp. |
 | `prompt_injection_flag` | boolean | Prompt/jailbreak flag. |
 | `hallucination_flag` | boolean | Groundedness/factuality signal. |
 | `toxicity_score` | numeric nullable | Optional. |

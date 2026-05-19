@@ -1,10 +1,13 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.models.ai_system import AISystem
+from app.models.evaluation import Evaluation
 from app.models.model_run import ModelRun
 from app.schemas.ai_system import AISystemCreate
 from app.services.ai_systems import create_ai_system
+from app.services.evaluations import evaluate_model_run
 from app.services.model_runs import create_model_run, estimate_local_cost_usd
 from app.services.prompt_versions import ensure_default_prompt_version, get_active_prompt_version
 
@@ -65,6 +68,7 @@ def seed_demo_systems(db: Session) -> int:
         created += 1
     ensure_default_prompt_versions(db)
     seed_demo_model_runs(db)
+    seed_demo_evaluations(db)
     return created
 
 
@@ -138,4 +142,30 @@ def seed_demo_model_runs(db: Session) -> int:
         created += 1
 
     db.commit()
+    return created
+
+
+def seed_demo_evaluations(db: Session) -> int:
+    settings = get_settings()
+    evaluated_run_ids = set(db.scalars(select(Evaluation.model_run_id)).all())
+    runs = db.scalars(select(ModelRun).where(ModelRun.output_text.is_not(None))).all()
+    systems_by_id = {system.id: system for system in db.scalars(select(AISystem)).all()}
+    created = 0
+    for run in runs:
+        if run.id in evaluated_run_ids:
+            continue
+        system = systems_by_id.get(run.ai_system_id)
+        if system is None:
+            continue
+        evaluate_model_run(
+            db,
+            settings=settings,
+            ai_system=system,
+            model_run=run,
+            retrieved_documents=[document.content for document in run.retrieved_documents],
+            actor="seed:demo",
+        )
+        created += 1
+    if created:
+        db.commit()
     return created

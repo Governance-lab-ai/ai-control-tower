@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
@@ -12,7 +12,8 @@ router = APIRouter(prefix="/governance", tags=["governance"])
 @router.post("/run", response_model=GovernanceRunResponse)
 def run_gateway(
     payload: GovernanceRunRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> GovernanceRunResponse:
-    return run_governance_gateway(db, settings, payload)
+    return run_governance_gateway(db, settings, payload, background_tasks=background_tasks)

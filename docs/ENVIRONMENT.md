@@ -130,14 +130,15 @@ volumes:
 Use environment variables to switch providers:
 
 ```text
-LLM_PROVIDER=mock
+LLM_PROVIDER=mock | ollama
+EVALUATION_PROVIDER=local
 SAFETY_PROVIDER=local | azure_content_safety
 SECRET_PROVIDER=env | azure_key_vault
 TELEMETRY_PROVIDER=console | azure_monitor
 AUTH_MODE=local_mock | entra
 ```
 
-Current local code supports `LLM_PROVIDER=mock`. Planned backend-only LLM provider values are `ollama`, `openai`, `anthropic`, and `azure_openai`. These should be added behind `LLMProvider` adapters before they are enabled in local environment templates.
+Current local code supports `LLM_PROVIDER=mock` and optional `LLM_PROVIDER=ollama`. Planned backend-only LLM provider values are `openai`, `anthropic`, and `azure_openai`. These should be added behind `LLMProvider` adapters before they are enabled in local environment templates.
 
 Provider factory example:
 
@@ -163,6 +164,15 @@ OPENAI_API_KEY=
 OPENAI_MODEL=
 AZURE_OPENAI_ENDPOINT=
 AZURE_OPENAI_DEPLOYMENT_NAME=
+```
+
+Evaluation thresholds are configurable:
+
+```text
+EVALUATION_THRESHOLD_LOW=55
+EVALUATION_THRESHOLD_MEDIUM=70
+EVALUATION_THRESHOLD_HIGH=80
+EVALUATION_THRESHOLD_CRITICAL=90
 ```
 
 ## Local mock user model
