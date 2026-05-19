@@ -97,6 +97,17 @@ flowchart TB
   Audit --> DB
 ```
 
+## Episode 1 runnable scaffold
+
+The initial local monorepo uses a small service split that matches the target architecture without adding real provider dependencies yet:
+
+- `backend/`: FastAPI application with `GET /health`, typed environment settings in `app/core/config.py`, and a SQLAlchemy session placeholder in `app/db/session.py`.
+- `frontend/`: Next.js dashboard shell using the dark operational design system from `DESIGN.md`.
+- `docker-compose.yml`: local Postgres, backend, and frontend orchestration.
+- `infra/`: local orchestration notes and placeholder location for later Azure-aware templates.
+
+Provider integrations remain interface-level decisions for later phases. No LLM calls run in the frontend, and no Azure resources are provisioned by the local compose setup.
+
 ## Target Azure-aware architecture
 
 ```mermaid

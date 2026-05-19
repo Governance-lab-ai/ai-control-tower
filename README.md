@@ -1,5 +1,7 @@
 # AI Governance Control Tower
 
+![AI Governance Control Tower system diagram](docs/assets/system-diagram-concept.png)
+
 **Document version:** 0.1  
 **Date:** 2026-05-12  
 **Project mode:** Local-first MVP, Azure-aware architecture  
@@ -11,7 +13,7 @@
 
 The AI Governance Control Tower is a flagship project for demonstrating how organisations can govern AI systems after, around, and before AI applications are deployed.
 
-Most AI portfolio projects show a chatbot, summariser, or agent. This project shows the operational layer that a serious organisation needs around those systems:
+This project shows the operational layer that a serious organisation needs around those systems:
 
 - A registry of AI systems and owners.
 - Approval workflows and risk levels.
@@ -60,6 +62,77 @@ The Control Tower gives visibility, control, accountability, and evidence around
 | Identity | Local mock users and RBAC | Microsoft Entra ID |
 | Telemetry | Local logs and DB audit events | Azure Monitor + Application Insights / OpenTelemetry |
 | Data governance | Local data source metadata | Microsoft Purview integration later |
+
+## Local quick start
+
+Episode 1 creates the runnable local monorepo shell:
+
+```text
+backend/   FastAPI app, typed settings, health endpoint, database session placeholder
+frontend/  Next.js command-centre dashboard shell
+infra/     Local orchestration notes and future infrastructure templates
+docs/      Architecture, design, environment, testing, and governance documentation
+```
+
+Start all local services from the repository root:
+
+```bash
+docker compose up --build
+```
+
+Then open:
+
+- Frontend dashboard: http://localhost:3000
+- Backend health: http://localhost:8000/health
+- FastAPI docs in local mode: http://localhost:8000/docs
+
+The default local database is Postgres on `localhost:5432` with database `aigov`. The compose setup uses development-only credentials from the example environment files.
+
+## Local development without Docker
+
+Backend:
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+uvicorn app.main:app --reload
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## Smoke checks
+
+Backend health test:
+
+```bash
+cd backend
+pytest
+```
+
+Frontend type check:
+
+```bash
+cd frontend
+npm run typecheck
+```
+
+## Environment files
+
+Example templates are committed at:
+
+- `.env.example`
+- `backend/.env.example`
+- `frontend/.env.example`
+
+Do not commit real secrets. Frontend environment variables must remain limited to safe `NEXT_PUBLIC_*` values.
 
 ## Core product objects
 

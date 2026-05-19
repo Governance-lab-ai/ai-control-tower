@@ -9,7 +9,7 @@
 
 ## API design principles
 
-- Prefix all API routes with `/api/v1`.
+- Prefix stable production API routes with `/api/v1`; Episode 1 and 2 local MVP routes currently expose root paths such as `/health` and `/ai-systems` to match the runnable scaffold.
 - Use JSON request/response bodies.
 - Use stable error codes.
 - Enforce permissions in backend.
@@ -80,7 +80,7 @@ Response:
 
 ## AI systems
 
-### `POST /api/v1/ai-systems`
+### `POST /ai-systems`
 
 Create an AI system.
 
@@ -95,10 +95,11 @@ Request:
   "owner_email": "support-lead@example.test",
   "model_provider": "azure_openai",
   "model_name": "gpt-4.1",
+  "data_sources": ["Zendesk", "CRM", "Product Docs"],
   "contains_personal_data": true,
   "human_oversight_required": true,
   "risk_level": "medium",
-  "data_source_ids": ["ds_zendesk", "ds_crm", "ds_docs"]
+  "approval_status": "pending"
 }
 ```
 
@@ -108,54 +109,46 @@ Response:
 {
   "id": "sys_001",
   "name": "Customer Support Summariser",
+  "description": "Summarises customer support tickets and suggests response drafts.",
   "department": "Customer Success",
+  "owner_name": "Head of Support",
+  "owner_email": "support-lead@example.test",
+  "model_provider": "azure_openai",
+  "model_name": "gpt-4.1",
+  "data_sources": ["Zendesk", "CRM", "Product Docs"],
+  "contains_personal_data": true,
+  "human_oversight_required": true,
   "risk_level": "medium",
   "approval_status": "pending",
-  "created_at": "2026-05-12T09:00:00Z"
+  "created_at": "2026-05-12T09:00:00Z",
+  "updated_at": "2026-05-12T09:00:00Z"
 }
 ```
 
-### `GET /api/v1/ai-systems`
-
-Query params:
-
-```text
-page
-page_size
-department
-risk_level
-approval_status
-owner
-contains_personal_data
-search
-```
+### `GET /ai-systems`
 
 Response:
 
 ```json
-{
-  "items": [
-    {
-      "id": "sys_001",
-      "name": "Customer Support Summariser",
-      "department": "Customer Success",
-      "owner_name": "Head of Support",
-      "model_provider": "azure_openai",
-      "model_name": "gpt-4.1",
-      "risk_level": "medium",
-      "approval_status": "approved",
-      "contains_personal_data": true,
-      "human_oversight_required": true,
-      "last_run_at": "2026-05-12T10:30:00Z"
-    }
-  ],
-  "page": 1,
-  "page_size": 25,
-  "total": 18
-}
+[
+  {
+    "id": "sys_001",
+    "name": "Customer Support Summariser",
+    "department": "Customer Success",
+    "owner_name": "Head of Support",
+    "model_provider": "azure_openai",
+    "model_name": "gpt-4.1",
+    "risk_level": "medium",
+    "approval_status": "approved",
+    "contains_personal_data": true,
+    "human_oversight_required": true,
+    "created_at": "2026-05-12T09:00:00Z",
+    "updated_at": "2026-05-12T09:00:00Z"
+  }
+]
 ```
 
-### `GET /api/v1/ai-systems/{system_id}`
+### `GET /ai-systems/{system_id}`
 
 Returns detail view data.
 
@@ -169,19 +162,17 @@ Includes:
 - Approval history.
 - Summary stats.
 
-### `PATCH /api/v1/ai-systems/{system_id}`
+### `PATCH /ai-systems/{system_id}`
 
 Update metadata. Approval status should use separate endpoint.
 
-### `PATCH /api/v1/ai-systems/{system_id}/approval-status`
+### `PATCH /ai-systems/{system_id}/approval-status`
 
 Request:
 
 ```json
 {
-  "approval_status": "approved",
-  "reason": "Approved for controlled support summarisation with human oversight.",
-  "human_oversight_required": true
+  "approval_status": "approved"
 }
 ```
 
@@ -191,10 +182,11 @@ Response:
 {
   "id": "sys_001",
   "approval_status": "approved",
-  "approved_by": "user_admin",
-  "approved_at": "2026-05-12T09:10:00Z"
+  "updated_at": "2026-05-12T09:10:00Z"
 }
 ```
+
+Creating a system records an `ai_system.created` audit event. Changing approval status records an `ai_system.approval_status_changed` audit event.
 
 ## Data sources
 
