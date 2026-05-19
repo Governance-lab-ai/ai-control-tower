@@ -97,6 +97,12 @@ NEXT_PUBLIC_CONTENT_SAFETY_KEY
 
 No provider secrets should be public.
 
+Episode 1 implements these templates at:
+
+- `.env.example`
+- `backend/.env.example`
+- `frontend/.env.example`
+
 ## Docker Compose environment
 
 Minimal local services:
