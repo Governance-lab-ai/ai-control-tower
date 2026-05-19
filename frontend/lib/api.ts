@@ -1,4 +1,16 @@
-import type { AISystem, AISystemCreate, ApprovalStatus, Evaluation, GovernanceRunRequest, GovernanceRunResponse, Incident, ModelRun } from "@/lib/types";
+import type {
+  AISystem,
+  AISystemCreate,
+  ApprovalStatus,
+  Evaluation,
+  GovernanceRunRequest,
+  GovernanceRunResponse,
+  HumanReview,
+  HumanReviewDecisionRequest,
+  HumanReviewDetail,
+  Incident,
+  ModelRun,
+} from "@/lib/types";
 
 const PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const SERVER_API_BASE_URL = process.env.NEXT_PRIVATE_API_BASE_URL ?? PUBLIC_API_BASE_URL;
@@ -95,4 +107,20 @@ export async function getIncidents(): Promise<Incident[]> {
 
 export async function getSystemIncidents(systemId: string): Promise<Incident[]> {
   return apiFetch<Incident[]>(`/ai-systems/${systemId}/incidents`, { cache: "no-store" });
+}
+
+export async function getReviews(status = "pending"): Promise<HumanReview[]> {
+  const query = status ? `?status=${encodeURIComponent(status)}` : "";
+  return apiFetch<HumanReview[]>(`/reviews${query}`, { cache: "no-store" });
+}
+
+export async function getReview(id: string): Promise<HumanReviewDetail> {
+  return apiFetch<HumanReviewDetail>(`/reviews/${id}`, { cache: "no-store" });
+}
+
+export async function decideReview(id: string, payload: HumanReviewDecisionRequest): Promise<HumanReviewDetail> {
+  return apiFetch<HumanReviewDetail>(`/reviews/${id}/decision`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }

@@ -363,18 +363,29 @@ Episode 5 PII and incident additions:
 
 Episode 6 evaluation additions:
 
-- `EvaluationProvider` interface and `LocalEvaluationProvider` implementation.
+- `EvaluationProvider` interface with `LocalEvaluationProvider`, `SemanticLocalEvaluationProvider`, and `OllamaEvaluationProvider` implementations.
 - Every executed gateway call queues asynchronous evaluation after creating the `model_runs` record.
 - Evaluation records include overall score, relevance score, groundedness score, hallucination flag, summary, threshold, and review requirement.
 - Medium, high, and critical risk systems use stricter configurable thresholds.
 - Runs with failed evaluations are marked `requires_review` by the background task.
 - `/evaluations?failed_only=true` exposes failed evaluation signals to the frontend.
 - `OllamaLLMProvider` can be enabled with `LLM_PROVIDER=ollama` when a local Ollama service is available.
+- `OllamaEvaluationProvider` can be enabled with `EVALUATION_PROVIDER=ollama_local` and falls back to semantic local evaluation if the local model is unavailable.
+
+Episode 7 human review additions:
+
+- `human_reviews` records are created for PII input flags, PII output flags, failed evaluations, hallucination flags, and high-risk systems that require human oversight.
+- Review records include status, reason, priority, summary, reviewer identity, decision notes, and decision timestamp.
+- `/reviews`, `/reviews/{review_id}`, and `/reviews/{review_id}/decision` expose the queue, evidence detail, and reviewer decision workflow.
+- Reviewer decisions create audit events with the reviewer identity, decision, notes, and timestamp.
+- The frontend includes `/reviews` for the pending queue and `/reviews/[id]` for evidence inspection and decision capture.
 
 ### Phase D — Evaluation layer
 
 Implement local evaluators first:
 
+- Semantic local evaluator with stemming, synonym groups, phrase matching, sentence support, and unsupported-number checks.
+- Ollama local judge provider with structured JSON output and safe fallback.
 - PII detection using Microsoft Presidio/Presidio where available.
 - Regex, NER, and entity detection fallback for local/demo mode.
 - Prompt injection keyword/pattern check.

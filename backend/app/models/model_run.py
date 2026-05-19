@@ -38,6 +38,12 @@ class ModelRun(Base):
         cascade="all, delete-orphan",
         uselist=False,
     )
+    human_reviews: Mapped[list["HumanReview"]] = relationship(
+        "HumanReview",
+        back_populates="model_run",
+        cascade="all, delete-orphan",
+        order_by="HumanReview.created_at.desc()",
+    )
 
 
 class RetrievedDocument(Base):

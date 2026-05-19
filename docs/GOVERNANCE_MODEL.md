@@ -277,12 +277,18 @@ Evaluation result should include:
 
 ### Episode 6 local evaluation rules
 
-Episode 6 uses `LocalEvaluationProvider`, a deterministic local evaluator intended for prototype signals only.
+Episode 6 supports a provider progression for the Evaluation Agent. These evaluators are prototype signals only:
+
+| Provider | Role |
+|---|---|
+| `LocalEvaluationProvider` | Fast token-overlap baseline. |
+| `SemanticLocalEvaluationProvider` | Dependency-free semantic-ish local evaluator using stemming, synonym groups, phrase overlap, sentence-level support, and unsupported-number detection. |
+| `OllamaEvaluationProvider` | Optional local model judge through Ollama. It asks for structured JSON and falls back to `SemanticLocalEvaluationProvider` if Ollama is unavailable. |
 
 Dimensions:
 
-- `relevance_score`: token overlap between prompt/input terms and output terms.
-- `groundedness_score`: token overlap between output terms and supplied retrieved documents. Runs without retrieved documents receive a conservative local grounding score.
+- `relevance_score`: overlap or semantic-ish similarity between prompt/input terms and output terms.
+- `groundedness_score`: source support against supplied retrieved documents. Runs without retrieved documents receive a conservative local grounding score.
 - `hallucination_flag`: true when output contains explicit unsupported-claim signals or when retrieved context exists and grounding is very weak.
 - `evaluation_score`: weighted score using relevance and groundedness.
 
@@ -296,6 +302,8 @@ Risk-adjusted default thresholds:
 | critical | 90 |
 
 If the score falls below the threshold or the hallucination flag is true, the model run is marked `requires_review`. These checks are governance heuristics, not proof of truth, safety, or compliance.
+
+The V2 direction is to let multiple bounded evaluation agents contribute separate signals, for example a local semantic scorer, a local Ollama judge, a policy validator, and later Azure/OpenAI evaluators. The final route decision should aggregate those signals with explicit reasons rather than letting any evaluator silently change approval status.
 
 ### Episode 5 local PII rules
 
@@ -319,14 +327,20 @@ Detector output uses redacted snippets such as `[REDACTED_EMAIL]`. The local det
 
 ## Human review routing
 
-Create human review if:
+Episode 7 implements local human review records. The review queue is not a policy label; it is an operational workflow where a reviewer inspects run evidence, risk flags, evaluation output, linked incidents, and retrieved documents before recording a decision.
 
-- System requires human oversight and output was generated.
-- PII detected in output.
+Implemented local review creation rules:
+
+- PII is detected in the input.
+- PII is detected in the output.
+- Evaluation score is below the configured threshold.
+- Evaluation raises a hallucination flag.
+- System risk level is `high` and `human_oversight_required` is true.
+
+Planned future routing rules:
+
 - Prompt injection detected.
-- Hallucination/groundedness flag triggered.
-- Evaluation score below threshold.
-- High-risk system generates output.
+- Critical risk system generates output.
 - Reviewer is explicitly requested.
 
 Review priorities:
@@ -337,6 +351,17 @@ Review priorities:
 | High | PII output, jailbreak, high-risk system. |
 | Medium | Hallucination, medium risk with failed eval. |
 | Low | Low relevance, minor formatting issues. |
+
+Decision statuses:
+
+| Status | Meaning |
+|---|---|
+| `pending` | Awaiting reviewer decision. |
+| `approved` | Reviewer accepted the run evidence/output. |
+| `rejected` | Reviewer rejected the run evidence/output. |
+| `escalated` | Reviewer routed the case for higher-level handling. |
+
+Reviewer decisions require reviewer ID, reviewer name, notes, and timestamp. Each decision records an audit event. Rejected and escalated runs remain marked `requires_review`.
 
 ## Incident creation policy
 

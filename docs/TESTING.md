@@ -67,6 +67,18 @@ Test cases:
 - Safe, relevant output passes.
 - Failed evaluations appear through `/evaluations?failed_only=true`.
 
+### Human review service
+
+Test cases:
+
+- PII detected in input creates a pending human review item.
+- PII detected in output creates a pending human review item.
+- Failed evaluation or hallucination flag creates a pending human review item.
+- High-risk systems with human oversight required create a pending human review item.
+- Reviewer can approve, reject, or escalate a pending review with notes.
+- Decided reviews cannot be decided a second time.
+- Reviewer decisions create audit events.
+
 ### Audit logger
 
 Test cases:
@@ -100,7 +112,7 @@ Test cases:
 1. Submit request with PII.
 2. Assert review item created.
 3. Approve review.
-4. Assert review status complete.
+4. Assert review status is `approved`.
 5. Assert audit event exists.
 
 ### Incident path

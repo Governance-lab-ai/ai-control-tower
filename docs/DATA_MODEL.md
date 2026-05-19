@@ -292,18 +292,23 @@ Episode 6 local MVP queues one evaluation for every executed model run after the
 
 ### `human_reviews`
 
+Episode 7 local MVP implements human review records for model runs that need reviewer attention. Reviews are attached to one model run and one AI system. Reviewer decisions are status transitions on the same record and are also captured as audit events.
+
 | Column | Type | Notes |
 |---|---|---|
 | `id` | UUID PK | Review ID. |
-| `company_id` | UUID FK | Company. |
-| `model_run_id` | UUID FK | Run. |
-| `assigned_to_user_id` | UUID FK nullable | Reviewer. |
-| `status` | text | pending/in_review/completed. |
-| `decision` | enum nullable | approved/rejected/escalated/needs_changes. |
-| `reason` | text | Why review was created. |
-| `notes` | text nullable | Reviewer notes. |
+| `ai_system_id` | UUID FK | Owning AI system. |
+| `model_run_id` | UUID FK | Linked model run. |
+| `status` | text | `pending`, `approved`, `rejected`, or `escalated`. |
+| `reason` | text | Routing reason, for example `pii_detected_output`, `hallucination_flag`, `evaluation_below_threshold`, or `high_risk_human_oversight`. |
+| `priority` | text | `low`, `medium`, `high`, or `critical`. |
+| `summary` | text | Reviewer-facing explanation. |
+| `reviewer_id` | text nullable | Reviewer identifier supplied with a decision. |
+| `reviewer_name` | text nullable | Reviewer display name supplied with a decision. |
+| `decision_notes` | text nullable | Required reviewer notes for the decision. |
+| `decided_at` | timestamptz nullable | Decision timestamp. |
 | `created_at` | timestamptz | Created. |
-| `completed_at` | timestamptz nullable | Completed. |
+| `updated_at` | timestamptz | Last update. |
 
 ### `incidents`
 
@@ -360,7 +365,9 @@ Add indexes on:
 - `model_runs(company_id, created_at)`
 - `model_runs(ai_system_id, created_at)`
 - `evaluation_results(model_run_id)`
-- `human_reviews(company_id, status, created_at)`
+- `human_reviews(status, created_at)`
+- `human_reviews(ai_system_id, created_at)`
+- `human_reviews(model_run_id)`
 - `incidents(company_id, status, severity, detected_at)`
 - `audit_events(company_id, created_at)`
 - `audit_events(entity_type, entity_id)`
@@ -374,7 +381,7 @@ These fields require special access controls:
 - `model_runs.output_text`
 - `retrieved_documents.snippet`
 - `evaluation_results.raw_results`
-- `human_reviews.notes`
+- `human_reviews.decision_notes`
 - `audit_events.before_state`
 - `audit_events.after_state`
 

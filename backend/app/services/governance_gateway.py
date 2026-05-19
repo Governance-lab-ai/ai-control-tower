@@ -10,6 +10,7 @@ from app.providers.llm import LLMRequest, get_llm_provider
 from app.schemas.governance import GovernanceRunRequest, GovernanceRunResponse
 from app.services.audit import create_audit_event
 from app.services.evaluations import evaluate_model_run_by_id
+from app.services.human_reviews import create_review_for_high_risk_oversight, create_reviews_for_pii
 from app.services.incidents import create_pii_incident
 from app.services.model_runs import create_model_run, estimate_local_cost_usd
 from app.services.pii import PIIResult, get_pii_detector
@@ -41,6 +42,14 @@ def run_governance_gateway(
         )
         if input_pii_result.pii_detected:
             create_pii_incident(db, actor=payload.actor, ai_system_id=system.id, model_run_id=run_id, source="input", pii_result=input_pii_result)
+        create_reviews_for_pii(
+            db,
+            actor=payload.actor,
+            ai_system=system,
+            model_run_id=run_id,
+            input_pii_detected=input_pii_result.pii_detected,
+            output_pii_detected=False,
+        )
         response = GovernanceRunResponse(
             run_id=run_id,
             status="blocked",
@@ -66,6 +75,14 @@ def run_governance_gateway(
         )
         if input_pii_result.pii_detected:
             create_pii_incident(db, actor=payload.actor, ai_system_id=system.id, model_run_id=run_id, source="input", pii_result=input_pii_result)
+        create_reviews_for_pii(
+            db,
+            actor=payload.actor,
+            ai_system=system,
+            model_run_id=run_id,
+            input_pii_detected=input_pii_result.pii_detected,
+            output_pii_detected=False,
+        )
         response = GovernanceRunResponse(
             run_id=run_id,
             status="requires_review",
@@ -137,6 +154,15 @@ def run_governance_gateway(
         create_pii_incident(db, actor=payload.actor, ai_system_id=system.id, model_run_id=run_id, source="input", pii_result=input_pii_result)
     if output_pii_result.pii_detected:
         create_pii_incident(db, actor=payload.actor, ai_system_id=system.id, model_run_id=run_id, source="output", pii_result=output_pii_result)
+    create_reviews_for_pii(
+        db,
+        actor=payload.actor,
+        ai_system=system,
+        model_run_id=run_id,
+        input_pii_detected=input_pii_result.pii_detected,
+        output_pii_detected=output_pii_result.pii_detected,
+    )
+    create_review_for_high_risk_oversight(db, actor=payload.actor, ai_system=system, model_run_id=run_id)
 
     if background_tasks is not None:
         background_tasks.add_task(
