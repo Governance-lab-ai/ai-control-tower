@@ -42,7 +42,7 @@ Reason: This is the core product thesis.
 
 Build:
 
-- `POST /api/v1/governance/run`
+- `POST /governance/run`
 - Pre-execution checks
 - Route decision
 - Model provider call

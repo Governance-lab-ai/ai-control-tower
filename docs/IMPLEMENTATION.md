@@ -310,7 +310,7 @@ Acceptance criteria:
 Build core endpoint:
 
 ```text
-POST /api/v1/governance/run
+POST /governance/run
 ```
 
 The gateway must:

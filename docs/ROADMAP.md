@@ -72,7 +72,7 @@ Estimated duration: 1–2 weeks.
 
 Deliverables:
 
-- `POST /api/v1/governance/run`.
+- `POST /governance/run`.
 - Mock LLM provider.
 - Model run table.
 - Retrieved document table.

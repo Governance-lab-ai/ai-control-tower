@@ -288,7 +288,7 @@ Activate prompt version. Requires appropriate role.
 
 ## Governance gateway
 
-### `POST /api/v1/governance/run`
+### `POST /governance/run`
 
 Primary runtime endpoint.
 

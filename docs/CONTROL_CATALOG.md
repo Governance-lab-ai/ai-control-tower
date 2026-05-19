@@ -208,7 +208,7 @@ Domains:
 
 **Risk addressed:** Unlogged AI activity, missing checks, direct frontend/provider calls, inconsistent controls.
 
-**Implementation:** AI apps call `POST /api/v1/governance/run`. The backend performs approval, role, prompt, PII, risk, provider, evaluation, review, and audit steps.
+**Implementation:** AI apps call `POST /governance/run`. The backend performs approval, role, prompt, PII, risk, provider, evaluation, review, and audit steps.
 
 **Evidence generated:**
 
