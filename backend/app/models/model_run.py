@@ -15,7 +15,7 @@ class ModelRun(Base):
     prompt_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("prompt_versions.id"), nullable=True, index=True)
     prompt: Mapped[str] = mapped_column(Text, nullable=False)
     input_text: Mapped[str] = mapped_column(Text, nullable=False)
-    output_text: Mapped[str] = mapped_column(Text, nullable=False)
+    output_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     model_provider: Mapped[str] = mapped_column(String(80), nullable=False)
     model_name: Mapped[str] = mapped_column(String(120), nullable=False)
     model_version: Mapped[str] = mapped_column(String(80), nullable=False)

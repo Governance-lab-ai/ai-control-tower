@@ -171,7 +171,7 @@ critical
 | `created_at` | timestamptz | Created timestamp. |
 | `updated_at` | timestamptz | Updated timestamp. |
 
-Episode 2 creates this table locally through SQLAlchemy `create_all` on startup and seeds three synthetic systems when missing:
+The local app applies Alembic migrations on startup and seeds three synthetic systems when missing:
 
 - Customer Support Summariser: medium risk, pending, contains personal data.
 - Sales Email Generator: low risk, approved, no personal data.
@@ -215,9 +215,11 @@ Join table.
 | `created_at` | timestamptz | Created timestamp. |
 | `activated_at` | timestamptz nullable | Active timestamp. |
 
+Episode 4 local MVP creates a default active `v1` prompt version for every registered system. Additional versions can be created as drafts and activated through the API; activation retires the previous active version for the same system.
+
 ### `model_runs`
 
-Episode 4 local MVP implements a focused subset: `id`, `ai_system_id`, nullable `prompt_version_id`, `prompt`, `input_text`, `output_text`, `model_provider`, `model_name`, `model_version`, `latency_ms`, `cost_usd`, `status`, and `created_at`.
+Episode 4 local MVP implements a focused subset: `id`, `ai_system_id`, nullable `prompt_version_id`, `prompt`, `input_text`, nullable `output_text`, `model_provider`, `model_name`, `model_version`, `latency_ms`, `cost_usd`, `status`, and `created_at`.
 
 | Column | Type | Notes |
 |---|---|---|

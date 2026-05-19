@@ -3,10 +3,10 @@ from sqlalchemy.orm import Session
 
 from app.models.ai_system import AISystem
 from app.models.model_run import ModelRun
-from app.models.prompt_version import PromptVersion
 from app.schemas.ai_system import AISystemCreate
 from app.services.ai_systems import create_ai_system
 from app.services.model_runs import create_model_run, estimate_local_cost_usd
+from app.services.prompt_versions import ensure_default_prompt_version, get_active_prompt_version
 
 
 DEMO_SYSTEMS: tuple[AISystemCreate, ...] = (
@@ -63,7 +63,21 @@ def seed_demo_systems(db: Session) -> int:
             continue
         create_ai_system(db, payload)
         created += 1
+    ensure_default_prompt_versions(db)
     seed_demo_model_runs(db)
+    return created
+
+
+def ensure_default_prompt_versions(db: Session) -> int:
+    created = 0
+    systems = db.scalars(select(AISystem)).all()
+    for system in systems:
+        if get_active_prompt_version(db, system.id) is not None:
+            continue
+        ensure_default_prompt_version(db, system)
+        created += 1
+    if created:
+        db.commit()
     return created
 
 
@@ -105,19 +119,11 @@ def seed_demo_model_runs(db: Session) -> int:
         system = systems_by_name.get(item["system_name"])
         if system is None:
             continue
-        prompt_version = PromptVersion(
-            ai_system_id=system.id,
-            version="v1",
-            name=f"{system.name} demo prompt",
-            prompt_text=item["prompt"],
-            status="active",
-        )
-        db.add(prompt_version)
-        db.flush()
+        prompt_version = get_active_prompt_version(db, system.id)
         create_model_run(
             db,
             ai_system=system,
-            prompt_version_id=prompt_version.id,
+            prompt_version_id=prompt_version.id if prompt_version else None,
             prompt=item["prompt"],
             input_text=item["input_text"],
             output_text=item["output_text"],

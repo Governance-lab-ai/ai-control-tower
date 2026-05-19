@@ -230,12 +230,13 @@ Blocked response:
 
 ```json
 {
-  "run_id": null,
+  "run_id": "44444444-4444-4444-4444-444444444444",
   "status": "blocked",
   "output_text": null,
   "governance_messages": [
     "Execution blocked because approval status is blocked.",
-    "No model provider call was made."
+    "No model provider call was made.",
+    "Blocked attempt was logged as a model run shell for audit review."
   ]
 }
 ```
@@ -244,10 +245,10 @@ Episode 3 gateway rules:
 
 - Missing AI system returns `404` with `AI_SYSTEM_NOT_FOUND`.
 - `approved` systems execute through `LocalMockLLMProvider`.
-- `pending` systems return `requires_review` and do not execute.
-- `blocked` and `retired` systems return `blocked` and do not execute.
+- `pending` systems return `requires_review`, do not execute, and create a model-run shell.
+- `blocked` and `retired` systems return `blocked`, do not execute, and create a model-run shell.
 - Gateway attempts create audit events with actions such as `governance.run.executed`, `governance.run.blocked`, and `governance.run.requires_review`.
-- Executed runs create persistent `model_runs` records and one `retrieved_documents` row for each supplied retrieved document.
+- Gateway attempts create persistent `model_runs` records and one `retrieved_documents` row for each supplied retrieved document. Non-executed shells have `output_text: null`, `latency_ms: 0`, `cost_usd: 0`, and `model_version: "not_executed"`.
 
 ## Model runs
 
@@ -265,7 +266,7 @@ Response:
 {
   "id": "22222222-2222-2222-2222-222222222222",
   "ai_system_id": "11111111-1111-1111-1111-111111111111",
-  "prompt_version_id": null,
+  "prompt_version_id": "55555555-5555-5555-5555-555555555555",
   "prompt": "Summarise the request using approved policy language.",
   "input_text": "Synthetic support ticket asks for a delivery status update.",
   "output_text": "[Local mock output] Customer Support Summariser processed the request.",
@@ -314,7 +315,11 @@ Request:
 
 ## Prompt versions
 
-### `POST /api/v1/ai-systems/{system_id}/prompt-versions`
+### `GET /ai-systems/{system_id}/prompt-versions`
+
+List prompt versions for a system.
+
+### `POST /ai-systems/{system_id}/prompt-versions`
 
 Create draft prompt version.
 
@@ -327,9 +332,9 @@ Request:
 }
 ```
 
-### `PATCH /api/v1/prompt-versions/{prompt_version_id}/activate`
+### `PATCH /prompt-versions/{prompt_version_id}/activate`
 
-Activate prompt version. Requires appropriate role.
+Activate prompt version. Activating one version retires the previous active version for that system. Newly registered systems receive a default active `v1` prompt version.
 
 ## Governance gateway
 
@@ -399,7 +404,7 @@ Blocked response:
 
 ## Model runs
 
-### `GET /api/v1/model-runs`
+### `GET /model-runs`
 
 Query params:
 
@@ -416,7 +421,7 @@ page
 page_size
 ```
 
-### `GET /api/v1/model-runs/{run_id}`
+### `GET /model-runs/{run_id}`
 
 Returns full detail for authorised users:
 

@@ -345,10 +345,12 @@ Acceptance criteria:
 Episode 4 logging additions:
 
 - Executed gateway calls create `model_runs` records.
+- Blocked and pending gateway calls create model-run shell records for audit review.
 - Gateway execution measures latency in milliseconds.
 - Local mock provider cost is estimated from prompt/input/output/retrieval text length.
 - Supplied retrieved documents are persisted and linked to the run.
 - `GET /model-runs`, `GET /model-runs/{run_id}`, and `GET /ai-systems/{system_id}/runs` expose run evidence for UI and review.
+- `GET /ai-systems/{system_id}/prompt-versions`, `POST /ai-systems/{system_id}/prompt-versions`, and `PATCH /prompt-versions/{prompt_version_id}/activate` manage prompt versions.
 
 ### Phase D — Evaluation layer
 

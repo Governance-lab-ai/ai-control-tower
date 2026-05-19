@@ -10,6 +10,7 @@ from app.providers.llm import LLMRequest, get_llm_provider
 from app.schemas.governance import GovernanceRunRequest, GovernanceRunResponse
 from app.services.audit import create_audit_event
 from app.services.model_runs import create_model_run, estimate_local_cost_usd
+from app.services.prompt_versions import get_active_prompt_version
 
 
 def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceRunRequest) -> GovernanceRunResponse:
@@ -17,27 +18,35 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
     if system is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"code": "AI_SYSTEM_NOT_FOUND"})
 
+    active_prompt_version = get_active_prompt_version(db, system.id)
+
     if system.approval_status in {"blocked", "retired"}:
+        run_id = _record_model_run_shell(db, payload, system, active_prompt_version.id if active_prompt_version else None, "blocked")
         response = GovernanceRunResponse(
+            run_id=run_id,
             status="blocked",
             governance_messages=[
                 f"Execution blocked because approval status is {system.approval_status}.",
                 "No model provider call was made.",
+                "Blocked attempt was logged as a model run shell for audit review.",
             ],
         )
-        _record_gateway_event(db, payload, system, response.status, response.governance_messages)
+        _record_gateway_event(db, payload, system, response.status, response.governance_messages, run_id=run_id)
         db.commit()
         return response
 
     if system.approval_status == "pending":
+        run_id = _record_model_run_shell(db, payload, system, active_prompt_version.id if active_prompt_version else None, "requires_review")
         response = GovernanceRunResponse(
+            run_id=run_id,
             status="requires_review",
             governance_messages=[
                 "Execution requires review because the AI system approval status is pending.",
                 "Pending systems are not executed in the local MVP gateway.",
+                "Review-required attempt was logged as a model run shell for audit review.",
             ],
         )
-        _record_gateway_event(db, payload, system, response.status, response.governance_messages)
+        _record_gateway_event(db, payload, system, response.status, response.governance_messages, run_id=run_id)
         db.commit()
         return response
 
@@ -77,7 +86,7 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
         db,
         run_id=run_id,
         ai_system=system,
-        prompt_version_id=None,
+        prompt_version_id=active_prompt_version.id if active_prompt_version else None,
         prompt=payload.prompt,
         input_text=payload.input_text,
         output_text=provider_response.output_text,
@@ -95,6 +104,7 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
         output_text=provider_response.output_text,
         governance_messages=[
             "AI system is approved for gateway execution.",
+            f"Linked active prompt version {active_prompt_version.version}." if active_prompt_version else "No active prompt version was linked.",
             f"Executed through provider {provider_response.provider} using model {provider_response.model}.",
             f"Model run logged with latency {latency_ms}ms and estimated cost ${cost_usd:.6f}.",
         ],
@@ -102,6 +112,33 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
     _record_gateway_event(db, payload, system, response.status, response.governance_messages, run_id=run_id)
     db.commit()
     return response
+
+
+def _record_model_run_shell(
+    db: Session,
+    payload: GovernanceRunRequest,
+    system: AISystem,
+    prompt_version_id: uuid.UUID | None,
+    gateway_status: str,
+) -> uuid.UUID:
+    run_id = uuid.uuid4()
+    create_model_run(
+        db,
+        run_id=run_id,
+        ai_system=system,
+        prompt_version_id=prompt_version_id,
+        prompt=payload.prompt,
+        input_text=payload.input_text,
+        output_text=None,
+        model_provider=system.model_provider,
+        model_name=system.model_name,
+        model_version="not_executed",
+        latency_ms=0,
+        cost_usd=0,
+        status_=gateway_status,
+        retrieved_documents=payload.retrieved_documents,
+    )
+    return run_id
 
 
 def _record_gateway_event(

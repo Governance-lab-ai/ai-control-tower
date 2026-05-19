@@ -178,9 +178,9 @@ Episode 3 implements the first runtime gateway at `POST /governance/run`. Episod
 | Approval status | Gateway status | Execution behaviour |
 |---|---|---|
 | `approved` | `executed` | Calls `LocalMockLLMProvider` and returns mock output. |
-| `pending` | `requires_review` | Does not execute. The system must be reviewed before model execution. |
-| `blocked` | `blocked` | Does not execute. A governance audit event is recorded. |
-| `retired` | `blocked` | Does not execute. A governance audit event is recorded. |
+| `pending` | `requires_review` | Does not execute. A model-run shell and governance audit event are recorded. |
+| `blocked` | `blocked` | Does not execute. A model-run shell and governance audit event are recorded. |
+| `retired` | `blocked` | Does not execute. A model-run shell and governance audit event are recorded. |
 | missing system | HTTP 404 | Returns `AI_SYSTEM_NOT_FOUND`. |
 
 Provider boundary:
@@ -196,7 +196,8 @@ Audit behaviour:
 - Pending calls record `governance.run.requires_review`.
 - Executed calls create `model_runs` records with prompt, input, output, provider metadata, latency, mock cost, and status.
 - Supplied retrieved documents are stored as `retrieved_documents` linked to the model run.
-- Blocked and pending calls remain audit-only in Episode 4 and do not create model-run records.
+- Blocked and pending calls create model-run shell records with no output, zero cost, zero latency, and `model_version` set to `not_executed`.
+- Gateway runs link the active prompt version when one exists. Newly registered systems receive a default active `v1` prompt version.
 
 ## V2 multi-agent governance model
 

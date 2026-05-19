@@ -54,6 +54,7 @@ def test_approved_system_executes_through_gateway() -> None:
 
     assert model_run is not None
     assert model_run.status == "executed"
+    assert model_run.prompt_version_id is not None
     assert model_run.latency_ms >= 1
     assert model_run.cost_usd > 0
     assert retrieved_document_count == 1
@@ -67,16 +68,20 @@ def test_blocked_system_does_not_execute_and_records_audit_event() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "blocked"
-    assert body["run_id"] is None
+    assert body["run_id"]
     assert body["output_text"] is None
 
     with SessionLocal() as db:
         actions = db.scalars(select(AuditEvent.action).where(AuditEvent.entity_id == UUID(system["id"]))).all()
+        model_run = db.get(ModelRun, UUID(body["run_id"]))
 
     assert "governance.run.blocked" in actions
+    assert model_run is not None
+    assert model_run.status == "blocked"
+    assert model_run.output_text is None
 
 
-def test_pending_system_requires_review_without_execution() -> None:
+def test_pending_system_requires_review_without_execution_and_records_shell_run() -> None:
     with TestClient(app) as client:
         system = _create_system(client, "pending")
         response = client.post("/governance/run", json=_gateway_payload(system["id"]))
@@ -84,9 +89,16 @@ def test_pending_system_requires_review_without_execution() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "requires_review"
-    assert body["run_id"] is None
+    assert body["run_id"]
     assert body["output_text"] is None
     assert "Pending systems are not executed in the local MVP gateway." in body["governance_messages"]
+
+    with SessionLocal() as db:
+        model_run = db.get(ModelRun, UUID(body["run_id"]))
+
+    assert model_run is not None
+    assert model_run.status == "requires_review"
+    assert model_run.output_text is None
 
 
 def test_missing_system_returns_not_found() -> None:

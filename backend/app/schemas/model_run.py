@@ -26,7 +26,7 @@ class ModelRunResponse(BaseModel):
     prompt_version_id: UUID | None
     prompt: str
     input_text: str
-    output_text: str
+    output_text: str | None
     model_provider: str
     model_name: str
     model_version: str

@@ -22,7 +22,7 @@ def create_model_run(
     prompt_version_id: UUID | None,
     prompt: str,
     input_text: str,
-    output_text: str,
+    output_text: str | None,
     model_provider: str,
     model_name: str,
     model_version: str,

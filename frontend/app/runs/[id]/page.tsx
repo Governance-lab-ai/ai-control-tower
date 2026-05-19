@@ -45,7 +45,7 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
           <h2 className="mt-6 text-base font-semibold text-[#E6EEF8]">Input</h2>
           <EvidenceText value={run.input_text} />
           <h2 className="mt-6 text-base font-semibold text-[#E6EEF8]">Output</h2>
-          <EvidenceText value={run.output_text} />
+          <EvidenceText value={run.output_text ?? "No model output was produced for this run."} />
         </Panel>
 
         <Panel className="p-5 md:col-span-12">
