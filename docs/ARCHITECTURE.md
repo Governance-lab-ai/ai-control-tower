@@ -188,6 +188,13 @@ Episode 3 implements the first synchronous gateway endpoint at `POST /governance
 
 The provider boundary is `LLMProvider`, currently backed by `LocalMockLLMProvider`. `AzureOpenAIProvider` exists only as a placeholder with TODOs and no credential requirement.
 
+Episode 4 persists executed gateway calls as model-run evidence:
+
+- `model_runs` stores prompt, input, output, provider, model, model version, status, latency, estimated cost, and timestamp.
+- `retrieved_documents` stores supplied retrieval context linked to the run.
+- Prompt version linkage is nullable until active prompt-version management is implemented.
+- Blocked and pending attempts continue to create audit events but do not yet create blocked model-run shell records.
+
 The gateway returns one of four route decisions:
 
 | Decision | Meaning | User-facing behaviour |

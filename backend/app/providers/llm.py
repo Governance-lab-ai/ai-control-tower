@@ -16,6 +16,7 @@ class LLMResponse:
     output_text: str
     provider: str
     model: str
+    model_version: str
 
 
 class LLMProvider(ABC):
@@ -34,6 +35,7 @@ class LocalMockLLMProvider(LLMProvider):
             ),
             provider="local_mock",
             model="mock-governance-gateway",
+            model_version="local-mock-v1",
         )
 
 

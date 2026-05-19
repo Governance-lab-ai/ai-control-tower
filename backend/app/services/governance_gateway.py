@@ -1,4 +1,5 @@
 import uuid
+from time import perf_counter
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -8,6 +9,7 @@ from app.models.ai_system import AISystem
 from app.providers.llm import LLMRequest, get_llm_provider
 from app.schemas.governance import GovernanceRunRequest, GovernanceRunResponse
 from app.services.audit import create_audit_event
+from app.services.model_runs import create_model_run, estimate_local_cost_usd
 
 
 def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceRunRequest) -> GovernanceRunResponse:
@@ -41,6 +43,7 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
 
     try:
         provider = get_llm_provider(settings.llm_provider)
+        started_at = perf_counter()
         provider_response = provider.generate(
             LLMRequest(
                 system_name=system.name,
@@ -50,6 +53,7 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
                 metadata=payload.metadata,
             )
         )
+        latency_ms = max(1, round((perf_counter() - started_at) * 1000))
     except Exception as exc:
         response = GovernanceRunResponse(
             status="failed",
@@ -63,6 +67,28 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
         return response
 
     run_id = uuid.uuid4()
+    cost_usd = estimate_local_cost_usd(
+        payload.prompt,
+        payload.input_text,
+        provider_response.output_text,
+        payload.retrieved_documents,
+    )
+    create_model_run(
+        db,
+        run_id=run_id,
+        ai_system=system,
+        prompt_version_id=None,
+        prompt=payload.prompt,
+        input_text=payload.input_text,
+        output_text=provider_response.output_text,
+        model_provider=provider_response.provider,
+        model_name=provider_response.model,
+        model_version=provider_response.model_version,
+        latency_ms=latency_ms,
+        cost_usd=cost_usd,
+        status_="executed",
+        retrieved_documents=payload.retrieved_documents,
+    )
     response = GovernanceRunResponse(
         run_id=run_id,
         status="executed",
@@ -70,7 +96,7 @@ def run_governance_gateway(db: Session, settings: Settings, payload: GovernanceR
         governance_messages=[
             "AI system is approved for gateway execution.",
             f"Executed through provider {provider_response.provider} using model {provider_response.model}.",
-            "Detailed model run persistence will be added in the model_runs episode.",
+            f"Model run logged with latency {latency_ms}ms and estimated cost ${cost_usd:.6f}.",
         ],
     )
     _record_gateway_event(db, payload, system, response.status, response.governance_messages, run_id=run_id)

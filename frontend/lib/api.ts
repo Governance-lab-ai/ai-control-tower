@@ -1,4 +1,4 @@
-import type { AISystem, AISystemCreate, ApprovalStatus, GovernanceRunRequest, GovernanceRunResponse } from "@/lib/types";
+import type { AISystem, AISystemCreate, ApprovalStatus, GovernanceRunRequest, GovernanceRunResponse, ModelRun } from "@/lib/types";
 
 const PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const SERVER_API_BASE_URL = process.env.NEXT_PRIVATE_API_BASE_URL ?? PUBLIC_API_BASE_URL;
@@ -70,4 +70,16 @@ export async function runGovernanceGateway(payload: GovernanceRunRequest): Promi
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export async function getModelRuns(): Promise<ModelRun[]> {
+  return apiFetch<ModelRun[]>("/model-runs", { cache: "no-store" });
+}
+
+export async function getModelRun(id: string): Promise<ModelRun> {
+  return apiFetch<ModelRun>(`/model-runs/${id}`, { cache: "no-store" });
+}
+
+export async function getSystemRuns(systemId: string): Promise<ModelRun[]> {
+  return apiFetch<ModelRun[]>(`/ai-systems/${systemId}/runs`, { cache: "no-store" });
 }

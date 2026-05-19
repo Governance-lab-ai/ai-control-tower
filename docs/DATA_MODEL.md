@@ -217,6 +217,8 @@ Join table.
 
 ### `model_runs`
 
+Episode 4 local MVP implements a focused subset: `id`, `ai_system_id`, nullable `prompt_version_id`, `prompt`, `input_text`, `output_text`, `model_provider`, `model_name`, `model_version`, `latency_ms`, `cost_usd`, `status`, and `created_at`.
+
 | Column | Type | Notes |
 |---|---|---|
 | `id` | UUID PK | Run ID. |
@@ -239,6 +241,8 @@ Join table.
 | `created_at` | timestamptz | Run timestamp. |
 
 ### `retrieved_documents`
+
+Episode 4 local MVP stores supplied retrieved document text as run evidence with `source_label`, `content`, and `ordinal`. Registered data-source linkage and retrieval scores remain later enhancements.
 
 | Column | Type | Notes |
 |---|---|---|

@@ -342,6 +342,14 @@ Acceptance criteria:
 - Risky responses route to human review.
 - All gateway decisions are explainable in the returned JSON.
 
+Episode 4 logging additions:
+
+- Executed gateway calls create `model_runs` records.
+- Gateway execution measures latency in milliseconds.
+- Local mock provider cost is estimated from prompt/input/output/retrieval text length.
+- Supplied retrieved documents are persisted and linked to the run.
+- `GET /model-runs`, `GET /model-runs/{run_id}`, and `GET /ai-systems/{system_id}/runs` expose run evidence for UI and review.
+
 ### Phase D — Evaluation layer
 
 Implement local evaluators first:

@@ -171,9 +171,9 @@ hold_for_review
 block
 ```
 
-### Episode 3 local gateway rules
+### Episode 3 and 4 local gateway rules
 
-Episode 3 implements the first runtime gateway at `POST /governance/run`.
+Episode 3 implements the first runtime gateway at `POST /governance/run`. Episode 4 adds persistent run logging for executed calls.
 
 | Approval status | Gateway status | Execution behaviour |
 |---|---|---|
@@ -194,7 +194,9 @@ Audit behaviour:
 - Executed gateway calls record `governance.run.executed`.
 - Blocked calls record `governance.run.blocked`.
 - Pending calls record `governance.run.requires_review`.
-- Detailed `model_runs` persistence is intentionally deferred to the next episode.
+- Executed calls create `model_runs` records with prompt, input, output, provider metadata, latency, mock cost, and status.
+- Supplied retrieved documents are stored as `retrieved_documents` linked to the model run.
+- Blocked and pending calls remain audit-only in Episode 4 and do not create model-run records.
 
 ## V2 multi-agent governance model
 

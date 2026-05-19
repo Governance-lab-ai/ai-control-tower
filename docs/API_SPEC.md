@@ -221,7 +221,7 @@ Executed response:
   "governance_messages": [
     "AI system is approved for gateway execution.",
     "Executed through provider local_mock using model mock-governance-gateway.",
-    "Detailed model run persistence will be added in the model_runs episode."
+    "Model run logged with latency 84ms and estimated cost $0.000065."
   ]
 }
 ```
@@ -247,6 +247,51 @@ Episode 3 gateway rules:
 - `pending` systems return `requires_review` and do not execute.
 - `blocked` and `retired` systems return `blocked` and do not execute.
 - Gateway attempts create audit events with actions such as `governance.run.executed`, `governance.run.blocked`, and `governance.run.requires_review`.
+- Executed runs create persistent `model_runs` records and one `retrieved_documents` row for each supplied retrieved document.
+
+## Model runs
+
+### `GET /model-runs`
+
+Returns all persisted model runs, newest first.
+
+### `GET /model-runs/{run_id}`
+
+Returns one model run with retrieved documents.
+
+Response:
+
+```json
+{
+  "id": "22222222-2222-2222-2222-222222222222",
+  "ai_system_id": "11111111-1111-1111-1111-111111111111",
+  "prompt_version_id": null,
+  "prompt": "Summarise the request using approved policy language.",
+  "input_text": "Synthetic support ticket asks for a delivery status update.",
+  "output_text": "[Local mock output] Customer Support Summariser processed the request.",
+  "model_provider": "local_mock",
+  "model_name": "mock-governance-gateway",
+  "model_version": "local-mock-v1",
+  "latency_ms": 84,
+  "cost_usd": 0.000065,
+  "status": "executed",
+  "created_at": "2026-05-19T10:00:00Z",
+  "retrieved_documents": [
+    {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "model_run_id": "22222222-2222-2222-2222-222222222222",
+      "source_label": "retrieved_document_1",
+      "content": "Synthetic delivery policy document.",
+      "ordinal": 1,
+      "created_at": "2026-05-19T10:00:00Z"
+    }
+  ]
+}
+```
+
+### `GET /ai-systems/{system_id}/runs`
+
+Returns model runs for a selected AI system, newest first.
 
 ## Data sources
 

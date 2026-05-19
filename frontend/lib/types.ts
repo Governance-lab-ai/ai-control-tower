@@ -45,3 +45,31 @@ export type GovernanceRunResponse = {
   output_text: string | null;
   governance_messages: string[];
 };
+
+export type RetrievedDocument = {
+  id: string;
+  model_run_id: string;
+  source_label: string;
+  content: string;
+  ordinal: number;
+  created_at: string;
+};
+
+export type ModelRunStatus = "executed" | "failed" | "blocked" | "requires_review";
+
+export type ModelRun = {
+  id: string;
+  ai_system_id: string;
+  prompt_version_id: string | null;
+  prompt: string;
+  input_text: string;
+  output_text: string;
+  model_provider: string;
+  model_name: string;
+  model_version: string;
+  latency_ms: number;
+  cost_usd: number;
+  status: ModelRunStatus;
+  created_at: string;
+  retrieved_documents: RetrievedDocument[];
+};

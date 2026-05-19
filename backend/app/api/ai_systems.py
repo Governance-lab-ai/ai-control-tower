@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.schemas.ai_system import AISystemCreate, AISystemResponse, ApprovalStatusUpdate
+from app.schemas.model_run import ModelRunResponse
 from app.services.ai_systems import create_ai_system, get_ai_system, list_ai_systems, update_approval_status
+from app.services.model_runs import list_model_runs_for_system
 
 router = APIRouter(prefix="/ai-systems", tags=["ai-systems"])
 
@@ -23,6 +25,11 @@ def list_systems(db: Session = Depends(get_db)) -> list[AISystemResponse]:
 @router.get("/{system_id}", response_model=AISystemResponse)
 def get_system(system_id: UUID, db: Session = Depends(get_db)) -> AISystemResponse:
     return get_ai_system(db, system_id)
+
+
+@router.get("/{system_id}/runs", response_model=list[ModelRunResponse])
+def list_system_runs(system_id: UUID, db: Session = Depends(get_db)) -> list[ModelRunResponse]:
+    return list_model_runs_for_system(db, system_id)
 
 
 @router.patch("/{system_id}/approval-status", response_model=AISystemResponse)

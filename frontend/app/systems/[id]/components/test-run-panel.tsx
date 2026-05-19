@@ -26,6 +26,7 @@ export function TestRunPanel({
   const [actor, setActor] = useState("local_mock:governance_admin");
   const [prompt, setPrompt] = useState("Summarise the request using approved policy language.");
   const [inputText, setInputText] = useState("Synthetic support ticket asks for a delivery status update.");
+  const [retrievedDocuments, setRetrievedDocuments] = useState("Synthetic support policy: delayed shipment handling.\nSynthetic refund policy summary.");
   const [result, setResult] = useState<GovernanceRunResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -42,6 +43,10 @@ export function TestRunPanel({
         actor,
         prompt,
         input_text: inputText,
+        retrieved_documents: retrievedDocuments
+          .split("\n")
+          .map((document) => document.trim())
+          .filter(Boolean),
         metadata: { source: "system_detail_test_run" },
       });
       setResult(response);
@@ -72,6 +77,12 @@ export function TestRunPanel({
           value={inputText}
           onChange={(event) => setInputText(event.target.value)}
           required
+          className="md:col-span-2"
+        />
+        <TextareaField
+          label="Retrieved documents"
+          value={retrievedDocuments}
+          onChange={(event) => setRetrievedDocuments(event.target.value)}
           className="md:col-span-2"
         />
         <div className="flex justify-end md:col-span-2">
