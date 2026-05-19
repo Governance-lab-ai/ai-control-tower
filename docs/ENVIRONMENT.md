@@ -130,12 +130,14 @@ volumes:
 Use environment variables to switch providers:
 
 ```text
-LLM_PROVIDER=mock | openai | anthropic | azure_openai
+LLM_PROVIDER=mock
 SAFETY_PROVIDER=local | azure_content_safety
 SECRET_PROVIDER=env | azure_key_vault
 TELEMETRY_PROVIDER=console | azure_monitor
 AUTH_MODE=local_mock | entra
 ```
+
+Current local code supports `LLM_PROVIDER=mock`. Planned backend-only LLM provider values are `ollama`, `openai`, `anthropic`, and `azure_openai`. These should be added behind `LLMProvider` adapters before they are enabled in local environment templates.
 
 Provider factory example:
 
@@ -143,9 +145,24 @@ Provider factory example:
 def get_llm_provider(settings: Settings) -> LLMProvider:
     if settings.LLM_PROVIDER == "mock":
         return MockLLMProvider()
+    if settings.LLM_PROVIDER == "ollama":
+        return OllamaLLMProvider(settings)
+    if settings.LLM_PROVIDER == "openai":
+        return OpenAILLMProvider(settings)
     if settings.LLM_PROVIDER == "azure_openai":
         return AzureOpenAIProvider(settings)
     raise ValueError(f"Unsupported LLM provider: {settings.LLM_PROVIDER}")
+```
+
+Future provider configuration should stay backend-only:
+
+```text
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=llama3.1
+OPENAI_API_KEY=
+OPENAI_MODEL=
+AZURE_OPENAI_ENDPOINT=
+AZURE_OPENAI_DEPLOYMENT_NAME=
 ```
 
 ## Local mock user model

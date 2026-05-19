@@ -308,7 +308,7 @@ Returns model runs for a selected AI system, newest first.
 
 ## PII detection and incidents
 
-Episode 5 adds local regex PII checks before and after model execution. This is a prototype detector for synthetic demos, not comprehensive PII discovery.
+Episode 5 adds hybrid local PII checks before and after model execution. This is a prototype detector for synthetic demos and obvious structured values, not comprehensive PII discovery.
 
 Detected patterns:
 
@@ -317,6 +317,9 @@ Detected patterns:
 - Names with labels such as `Customer name:`.
 - Account IDs with labels such as `Account ID:`.
 - Addresses with labels such as `Address:`.
+- Dates of birth, national IDs, and postal codes with labels.
+- IBAN-like values.
+- Payment-card-like values that pass a Luhn checksum.
 
 If PII is detected in input or output:
 

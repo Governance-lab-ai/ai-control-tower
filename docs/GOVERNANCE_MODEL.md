@@ -277,7 +277,7 @@ Evaluation result should include:
 
 ### Episode 5 local PII rules
 
-Episode 5 uses `LocalRegexPIIDetector`, a local heuristic detector intended for synthetic demo data only.
+Episode 5 uses `HybridLocalPIIDetector`, a free local heuristic detector intended for synthetic demo data and obvious structured patterns only.
 
 Detected patterns:
 
@@ -286,10 +286,13 @@ Detected patterns:
 - Labelled names, for example `Customer name: Alex Morgan`.
 - Labelled account IDs, for example `Account ID: ACCT-12345`.
 - Labelled addresses, for example `Address: 10 Demo Street`.
+- Labelled dates of birth, postal codes, and national IDs.
+- IBAN-like bank account values.
+- Payment-card-like values that pass a Luhn checksum.
 
 If input PII is detected, the run stores `input_pii_result`, creates a `pii_detected_input` incident, and routes the run to review when execution occurs. If output PII is detected, the run stores `output_pii_result`, creates a `pii_detected_output` incident, and routes the run to review.
 
-Detector output uses redacted snippets such as `[REDACTED_EMAIL]`. This is not comprehensive PII detection and must not be described as a compliance guarantee.
+Detector output uses redacted snippets such as `[REDACTED_EMAIL]`. The local detector also exposes a full-text redaction utility for future pre-LLM redaction. This is not comprehensive PII detection and must not be described as a compliance guarantee.
 - Review requirement.
 
 ## Human review routing

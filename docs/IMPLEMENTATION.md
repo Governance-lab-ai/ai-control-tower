@@ -354,12 +354,12 @@ Episode 4 logging additions:
 
 Episode 5 PII and incident additions:
 
-- `PIIDetector` interface and `LocalRegexPIIDetector` implementation.
+- `PIIDetector` interface and `HybridLocalPIIDetector` implementation.
 - Input and output PII checks run in the governance gateway.
 - PII incidents are created for detected input/output PII.
 - Runs with detected PII are marked `requires_review`.
 - `/incidents` and `/ai-systems/{system_id}/incidents` expose incident evidence to the frontend.
-- Local detection is regex-based and not comprehensive.
+- Local detection uses free deterministic recognizers, label-aware rules, redaction, and Luhn validation for card-like values. It is not comprehensive.
 
 ### Phase D — Evaluation layer
 
@@ -561,6 +561,19 @@ class LLMProvider(ABC):
     async def generate(self, request: LLMRequest) -> LLMResponse:
         pass
 ```
+
+Current implementation:
+
+- `LocalMockLLMProvider` is active for local deterministic demos.
+- `AzureOpenAIProvider` is a placeholder and intentionally does not require credentials.
+
+Planned provider adapters:
+
+- `OllamaLLMProvider` for local model execution through an Ollama HTTP endpoint.
+- `OpenAILLMProvider` for direct OpenAI API experiments when explicitly configured.
+- `AzureOpenAIProvider` for the Azure integration phase.
+
+All provider adapters must return normalized provider metadata, token/cost/latency information where available, and must only be invoked by the governance gateway after approval and safety checks.
 
 ### Safety provider
 

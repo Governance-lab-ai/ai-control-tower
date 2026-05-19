@@ -186,7 +186,7 @@ Episode 3 implements the first synchronous gateway endpoint at `POST /governance
 - blocked and retired systems return `blocked` without model execution.
 - missing systems return `AI_SYSTEM_NOT_FOUND`.
 
-The provider boundary is `LLMProvider`, currently backed by `LocalMockLLMProvider`. `AzureOpenAIProvider` exists only as a placeholder with TODOs and no credential requirement.
+The provider boundary is `LLMProvider`, currently backed by `LocalMockLLMProvider`. `AzureOpenAIProvider` exists only as a placeholder with TODOs and no credential requirement. OpenAI and Ollama are planned as backend adapters using the same interface; they must not be called from frontend code and must still pass through approval checks, PII checks, run logging, incidents, and audit events.
 
 Episode 4 persists executed gateway calls as model-run evidence:
 
