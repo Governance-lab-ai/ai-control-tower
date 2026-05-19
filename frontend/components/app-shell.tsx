@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 type NavItem = {
   label: string;
+  href: string;
   icon: LucideIcon;
   active?: boolean;
 };
@@ -27,7 +28,7 @@ export function AppShell({ navItems, children }: AppShellProps) {
               return (
                 <a
                   key={item.label}
-                  href="#"
+                  href={item.href}
                   className={`flex min-w-fit items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition ${
                     item.active
                       ? "border-trust-teal/50 bg-panel-750 text-[#E6EEF8] shadow-trust"

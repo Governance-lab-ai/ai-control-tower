@@ -1,5 +1,7 @@
 # AI Governance Control Tower
 
+![AI Governance Control Tower system diagram](docs/assets/system-diagram-concept.png)
+
 **Document version:** 0.1  
 **Date:** 2026-05-12  
 **Project mode:** Local-first MVP, Azure-aware architecture  

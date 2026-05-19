@@ -25,9 +25,9 @@ Acme Corp
 
 | System | Department | Risk | Status | Demo purpose |
 |---|---|---:|---|---|
-| Customer Support Summariser | Customer Success | Medium | Approved | Main system used in model run demo. |
-| Sales Email Generator | Sales | Low | Approved | Shows lower-risk AI usage. |
-| HR CV Screening Assistant | HR | High | Pending/Blocked | Shows governance restraint. |
+| Customer Support Summariser | Customer Operations | Medium | Pending | Main system used in model run demo. |
+| Sales Email Generator | Revenue | Low | Approved | Shows lower-risk AI usage. |
+| HR CV Screening Assistant | People | High | Blocked | Shows governance restraint. |
 | Finance Report Assistant | Finance | Medium | Approved | Shows cost/usage and risk. |
 | Marketing Content Assistant | Marketing | Medium | Approved | Shows prompt injection/policy issue. |
 

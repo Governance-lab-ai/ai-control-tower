@@ -59,7 +59,6 @@ low
 medium
 high
 critical
-unknown
 ```
 
 ### Approval status
@@ -68,7 +67,6 @@ unknown
 pending
 approved
 blocked
-needs_changes
 retired
 ```
 
@@ -162,15 +160,22 @@ critical
 | `owner_email` | text | Owner email. |
 | `model_provider` | text | local, openai, anthropic, azure_openai. |
 | `model_name` | text | GPT-4.1, Claude, local model, etc. |
+| `data_sources` | json/text[] | Episode 2 stores source names directly before the data-source catalogue exists. |
 | `contains_personal_data` | boolean | Declared by owner. |
 | `human_oversight_required` | boolean | Required before/after output. |
-| `risk_level` | enum | low/medium/high/critical/unknown. |
-| `approval_status` | enum | pending/approved/blocked/needs_changes/retired. |
+| `risk_level` | enum/text | Episode 2 values: low/medium/high/critical. |
+| `approval_status` | enum/text | Episode 2 values: pending/approved/blocked/retired. |
 | `approval_reason` | text nullable | Reason for current approval state. |
 | `approved_by_user_id` | UUID FK nullable | Approver. |
 | `approved_at` | timestamptz nullable | Approval timestamp. |
 | `created_at` | timestamptz | Created timestamp. |
 | `updated_at` | timestamptz | Updated timestamp. |
+
+Episode 2 creates this table locally through SQLAlchemy `create_all` on startup and seeds three synthetic systems when missing:
+
+- Customer Support Summariser: medium risk, pending, contains personal data.
+- Sales Email Generator: low risk, approved, no personal data.
+- HR CV Screening Assistant: high risk, blocked, contains personal data.
 
 ### `data_sources`
 

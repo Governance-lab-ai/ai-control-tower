@@ -83,8 +83,9 @@ RATE_LIMIT_PER_MINUTE=60
 
 ```text
 NEXT_PUBLIC_APP_ENV=local
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 NEXT_PUBLIC_AUTH_MODE=local_mock
+NEXT_PRIVATE_API_BASE_URL=http://localhost:8000
 ```
 
 Do not add:

@@ -1,6 +1,7 @@
-import { Activity, AlertTriangle, ClipboardCheck, Database, FileClock, Gauge, Settings, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
+import { getNavItems } from "@/lib/navigation";
 import type { DashboardMetric } from "@/lib/types";
 
 const metrics: DashboardMetric[] = [
@@ -18,19 +19,9 @@ const recentRuns = [
   ["run_1045", "Sales Email Generator", "block", "Critical", "41 min ago"],
 ];
 
-const navItems = [
-  { label: "Dashboard", icon: Gauge, active: true },
-  { label: "AI Systems", icon: Database },
-  { label: "Runs", icon: Activity },
-  { label: "Reviews", icon: ClipboardCheck },
-  { label: "Incidents", icon: AlertTriangle },
-  { label: "Audit", icon: FileClock },
-  { label: "Settings", icon: Settings },
-];
-
 export default function DashboardPage() {
   return (
-    <AppShell navItems={navItems}>
+    <AppShell navItems={getNavItems("Dashboard")}>
       <section className="flex flex-col gap-2 border-b border-line-700/80 px-5 py-5 md:px-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
