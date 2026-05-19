@@ -123,6 +123,8 @@ MVP evaluators should be simple and explicit:
 | `LocalGroundednessEvaluator` | Estimate source support using overlap | Weak semantic signal |
 | `LocalRelevanceEvaluator` | Check whether output appears related to request | Shallow heuristic |
 | `LocalCostLatencyEvaluator` | Flag high cost/latency | Needs baselines |
+| `SemanticLocalEvaluationProvider` | Improve local relevance and groundedness with normalization, synonym expansion, phrase matching, sentence support, and unsupported-number checks | Still heuristic; does not prove truth |
+| `OllamaEvaluationProvider` | Use a local Ollama model as a bounded evaluation judge returning structured JSON | Model judgment is advisory and depends on the local model quality |
 
 Each MVP evaluator must include a limitation statement in the returned result.
 
@@ -442,6 +444,8 @@ Settings page should show:
 |---|---|---|
 | Local PII | Enabled | MVP checks |
 | Local Prompt Injection | Enabled | MVP checks |
+| Semantic Local Evaluation | Enabled/configurable | Local relevance and groundedness |
+| Ollama Local Evaluation | Optional | Local model judge |
 | Azure AI Content Safety | Not configured | Safety |
 | Prompt Shields | Not configured | Prompt injection |
 | Langfuse | Not configured | Tracing |

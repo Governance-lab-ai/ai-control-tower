@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     data_governance_provider: str = Field(default="local", validation_alias="DATA_GOVERNANCE_PROVIDER")
     ollama_base_url: str = Field(default="http://host.docker.internal:11434", validation_alias="OLLAMA_BASE_URL")
     ollama_model: str = Field(default="llama3.1", validation_alias="OLLAMA_MODEL")
+    ollama_evaluation_model: str = Field(default="llama3.1", validation_alias="OLLAMA_EVALUATION_MODEL")
 
     max_input_chars: int = Field(default=12000, validation_alias="MAX_INPUT_CHARS")
     max_output_chars: int = Field(default=12000, validation_alias="MAX_OUTPUT_CHARS")
@@ -63,7 +64,7 @@ class Settings(BaseSettings):
     @field_validator("evaluation_provider")
     @classmethod
     def validate_evaluation_provider(cls, value: str) -> str:
-        allowed = {"local"}
+        allowed = {"local", "semantic_local", "ollama_local"}
         if value not in allowed:
             raise ValueError(f"EVALUATION_PROVIDER must be one of: {', '.join(sorted(allowed))}")
         return value

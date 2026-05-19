@@ -101,7 +101,8 @@ Deliverables:
 - Prompt injection/policy detector with jailbreak detection, suspicious prompt heuristics, and tool restriction logic.
 - Redaction pipeline before provider calls for names, emails, phone numbers, and account numbers.
 - Output safety heuristic.
-- Groundedness/retrieval overlap heuristic.
+- Groundedness/retrieval overlap heuristic plus semantic-local improvements.
+- Optional Ollama local evaluation judge behind `EvaluationProvider`.
 - Evaluation score model.
 - Review routing rules.
 - Failed evaluations page.
@@ -249,6 +250,15 @@ Responsibilities:
 - Groundedness.
 - Policy validation.
 - Confidence scoring.
+
+Local/provider roadmap:
+
+- `local`: deterministic baseline evaluator for fast tests and demos.
+- `semantic_local`: improved local evaluator using token normalization, simple synonym expansion, phrase matching, sentence-level support checks, and unsupported-number detection.
+- `ollama_local`: local model judge through Ollama for richer reasoning while keeping data on the developer machine.
+- Later provider agents: OpenAI, Azure AI Foundry evaluations, Ragas, Promptfoo, Giskard, or other evaluator providers behind the same `EvaluationProvider` interface.
+
+The Evaluation Agent should produce advisory signals and route recommendations only. It must not silently approve systems or bypass the governance gateway.
 
 ### Agent 3 — Compliance Agent
 

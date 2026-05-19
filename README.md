@@ -26,10 +26,11 @@ This project shows the operational layer that a serious organisation needs aroun
 - Local-first development with Azure integration paths.
 - Persistent model run evidence for prompt, input, output, retrieval context, provider metadata, cost, and latency.
 - Local regex PII detection for synthetic demo patterns, with incident creation and redacted snippets.
+- Local evaluation providers for output quality signals, including a deterministic baseline, a stronger semantic-local heuristic, and an optional Ollama local judge.
 
 Planned governance controls include PII detection with Presidio/Microsoft Presidio plus regex, NER, and entity detection fallback; prompt injection and jailbreak detection; pre-LLM redaction for names, emails, phone numbers, and account numbers; role-based access for admin, analyst, reviewer, and auditor; and audit evidence for prompts, outputs, retrieved docs, approvals, costs, and reviewer actions.
 
-V2 should evolve the product into a genuine multi-agent governance system with dedicated Retrieval, Evaluation, Compliance, Human Review, and Reporting agents. These agents remain bounded backend services with typed contracts, explicit permissions, and audit trails.
+V2 should evolve the product into a genuine multi-agent governance system with dedicated Retrieval, Evaluation, Compliance, Human Review, and Reporting agents. Local Ollama and later external providers should plug in as bounded backend agents with typed contracts, explicit permissions, fallback behaviour, and audit trails.
 
 ## Product thesis
 

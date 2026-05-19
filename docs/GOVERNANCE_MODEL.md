@@ -277,12 +277,18 @@ Evaluation result should include:
 
 ### Episode 6 local evaluation rules
 
-Episode 6 uses `LocalEvaluationProvider`, a deterministic local evaluator intended for prototype signals only.
+Episode 6 supports a provider progression for the Evaluation Agent. These evaluators are prototype signals only:
+
+| Provider | Role |
+|---|---|
+| `LocalEvaluationProvider` | Fast token-overlap baseline. |
+| `SemanticLocalEvaluationProvider` | Dependency-free semantic-ish local evaluator using stemming, synonym groups, phrase overlap, sentence-level support, and unsupported-number detection. |
+| `OllamaEvaluationProvider` | Optional local model judge through Ollama. It asks for structured JSON and falls back to `SemanticLocalEvaluationProvider` if Ollama is unavailable. |
 
 Dimensions:
 
-- `relevance_score`: token overlap between prompt/input terms and output terms.
-- `groundedness_score`: token overlap between output terms and supplied retrieved documents. Runs without retrieved documents receive a conservative local grounding score.
+- `relevance_score`: overlap or semantic-ish similarity between prompt/input terms and output terms.
+- `groundedness_score`: source support against supplied retrieved documents. Runs without retrieved documents receive a conservative local grounding score.
 - `hallucination_flag`: true when output contains explicit unsupported-claim signals or when retrieved context exists and grounding is very weak.
 - `evaluation_score`: weighted score using relevance and groundedness.
 
@@ -296,6 +302,8 @@ Risk-adjusted default thresholds:
 | critical | 90 |
 
 If the score falls below the threshold or the hallucination flag is true, the model run is marked `requires_review`. These checks are governance heuristics, not proof of truth, safety, or compliance.
+
+The V2 direction is to let multiple bounded evaluation agents contribute separate signals, for example a local semantic scorer, a local Ollama judge, a policy validator, and later Azure/OpenAI evaluators. The final route decision should aggregate those signals with explicit reasons rather than letting any evaluator silently change approval status.
 
 ### Episode 5 local PII rules
 

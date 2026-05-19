@@ -515,10 +515,11 @@ Returns one evaluation.
 
 Evaluation fields:
 
-- `evaluation_score`: weighted local score from 0 to 100.
-- `relevance_score`: token-overlap relevance signal from 0 to 100.
-- `groundedness_score`: retrieved-context overlap signal from 0 to 100.
-- `hallucination_flag`: local heuristic flag for explicit unsupported-claim signals or very weak grounding.
+- `provider`: evaluation provider, for example `local_heuristic`, `semantic_local_heuristic`, or `ollama_local_judge`.
+- `evaluation_score`: weighted local/provider score from 0 to 100.
+- `relevance_score`: relevance signal from 0 to 100.
+- `groundedness_score`: retrieved-context support signal from 0 to 100.
+- `hallucination_flag`: heuristic or provider flag for explicit unsupported-claim signals or very weak grounding.
 - `requires_human_review`: true when the score is below the configured risk threshold or hallucination is flagged.
 
 These are prototype governance signals, not proof that an answer is correct.

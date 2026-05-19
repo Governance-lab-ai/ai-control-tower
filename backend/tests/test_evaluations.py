@@ -5,11 +5,18 @@ os.environ["DATABASE_URL"] = "sqlite://"
 
 from fastapi.testclient import TestClient
 
+from app.core.config import Settings
 from app.db.session import SessionLocal
 from app.main import app
 from app.models.evaluation import Evaluation
 from app.models.model_run import ModelRun
-from app.providers.evaluation import EvaluationRequest, LocalEvaluationProvider
+from app.providers.evaluation import (
+    EvaluationRequest,
+    LocalEvaluationProvider,
+    OllamaEvaluationProvider,
+    SemanticLocalEvaluationProvider,
+    get_evaluation_provider,
+)
 from tests.helpers.factories import make_ai_system_payload
 
 
@@ -102,3 +109,64 @@ def test_local_evaluation_provider_flags_hallucination_signal() -> None:
 
     assert result.hallucination_flag is True
     assert result.requires_human_review is True
+
+
+def test_semantic_local_provider_handles_synonyms_and_unsupported_numbers() -> None:
+    system = type("SyntheticSystem", (), {"risk_level": "medium"})()
+    provider = SemanticLocalEvaluationProvider()
+
+    relevant_result = provider.evaluate(
+        EvaluationRequest(
+            ai_system=system,
+            prompt="Summarise the refund policy for a delayed shipment.",
+            input_text="Customer asks about reimbursement for a late delivery.",
+            output_text="The customer asks for refund guidance after a delayed delivery.",
+            retrieved_documents=["Refund guidance says delayed delivery cases should be escalated for review."],
+            threshold=70,
+        )
+    )
+    unsupported_result = provider.evaluate(
+        EvaluationRequest(
+            ai_system=system,
+            prompt="Summarise the refund policy.",
+            input_text="Customer asks about reimbursement.",
+            output_text="The policy guarantees a 30% refund in every case.",
+            retrieved_documents=["Refund guidance says delayed delivery cases should be escalated for review."],
+            threshold=70,
+        )
+    )
+
+    assert relevant_result.relevance_score >= 70
+    assert unsupported_result.hallucination_flag is True
+    assert unsupported_result.requires_human_review is True
+
+
+def test_evaluation_provider_factory_supports_semantic_and_ollama_modes() -> None:
+    settings = Settings(DATABASE_URL="sqlite://", EVALUATION_PROVIDER="ollama_local")
+
+    assert isinstance(get_evaluation_provider("semantic_local"), SemanticLocalEvaluationProvider)
+    assert isinstance(get_evaluation_provider("ollama_local", settings), OllamaEvaluationProvider)
+
+
+def test_ollama_evaluation_provider_falls_back_when_unavailable() -> None:
+    system = type("SyntheticSystem", (), {"risk_level": "medium"})()
+    settings = Settings(
+        DATABASE_URL="sqlite://",
+        EVALUATION_PROVIDER="ollama_local",
+        OLLAMA_BASE_URL="http://127.0.0.1:1",
+        REQUEST_TIMEOUT_SECONDS=1,
+    )
+
+    result = OllamaEvaluationProvider(settings).evaluate(
+        EvaluationRequest(
+            ai_system=system,
+            prompt="Summarise the refund policy.",
+            input_text="Customer asks about reimbursement.",
+            output_text="The customer asks for refund guidance.",
+            retrieved_documents=["Refund guidance says delayed delivery cases should be escalated for review."],
+            threshold=70,
+        )
+    )
+
+    assert result.provider == "ollama_local_judge_fallback"
+    assert "semantic local fallback" in result.evaluation_summary

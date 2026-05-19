@@ -131,7 +131,7 @@ Use environment variables to switch providers:
 
 ```text
 LLM_PROVIDER=mock | ollama
-EVALUATION_PROVIDER=local
+EVALUATION_PROVIDER=local | semantic_local | ollama_local
 SAFETY_PROVIDER=local | azure_content_safety
 SECRET_PROVIDER=env | azure_key_vault
 TELEMETRY_PROVIDER=console | azure_monitor
@@ -139,6 +139,14 @@ AUTH_MODE=local_mock | entra
 ```
 
 Current local code supports `LLM_PROVIDER=mock` and optional `LLM_PROVIDER=ollama`. Planned backend-only LLM provider values are `openai`, `anthropic`, and `azure_openai`. These should be added behind `LLMProvider` adapters before they are enabled in local environment templates.
+
+Current local evaluation providers:
+
+| Provider | Purpose | External dependency |
+|---|---|---|
+| `local` | Fast deterministic token-overlap baseline. | None |
+| `semantic_local` | Stronger local heuristic with simple stemming, synonym groups, phrase overlap, sentence support, and unsupported-number checks. | None |
+| `ollama_local` | Uses a local Ollama model as a bounded evaluation agent, then falls back to `semantic_local` if Ollama is unavailable. | Local Ollama server |
 
 Provider factory example:
 
@@ -160,6 +168,7 @@ Future provider configuration should stay backend-only:
 ```text
 OLLAMA_BASE_URL=http://host.docker.internal:11434
 OLLAMA_MODEL=llama3.1
+OLLAMA_EVALUATION_MODEL=llama3.1
 OPENAI_API_KEY=
 OPENAI_MODEL=
 AZURE_OPENAI_ENDPOINT=

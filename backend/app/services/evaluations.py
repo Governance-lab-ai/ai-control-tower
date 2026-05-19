@@ -36,7 +36,7 @@ def evaluate_model_run(
         raise ValueError("Cannot evaluate a model run without output text.")
 
     threshold = threshold_for_risk(settings, ai_system.risk_level)
-    provider = get_evaluation_provider(settings.evaluation_provider)
+    provider = get_evaluation_provider(settings.evaluation_provider, settings)
     result = provider.evaluate(
         EvaluationRequest(
             ai_system=ai_system,
