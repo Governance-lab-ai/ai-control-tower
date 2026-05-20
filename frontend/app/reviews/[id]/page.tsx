@@ -2,20 +2,21 @@ import Link from "next/link";
 
 import { IncidentSeverityBadge, IncidentStatusBadge } from "@/components/incident-badges";
 import { ReviewPriorityBadge, ReviewStatusBadge } from "@/components/review-badges";
+import { DetailItem, EvidenceBlock, RetrievedDocumentsPanel, RunStepsPanel, ScoreCard, SignalFlagCard } from "@/components/run-evidence";
 import { RunStatusBadge } from "@/components/run-status-badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { Panel } from "@/components/ui/panel";
 import { AppShell } from "@/components/app-shell";
-import { getIncidents, getReview } from "@/lib/api";
+import { getReview, getRunIncidents } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { getNavItems } from "@/lib/navigation";
 import { DecisionForm } from "./decision-form";
 
 export default async function ReviewDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [review, incidents] = await Promise.all([getReview(id), getIncidents()]);
-  const runIncidents = incidents.filter((incident) => incident.model_run_id === review.model_run_id);
+  const review = await getReview(id);
   const run = review.model_run;
+  const runIncidents = await getRunIncidents(run.id);
 
   return (
     <AppShell navItems={getNavItems("Reviews")}>
@@ -39,12 +40,12 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
         <Panel className="p-5 md:col-span-4">
           <h2 className="text-base font-semibold text-[#E6EEF8]">Review Context</h2>
           <dl className="mt-5 space-y-3">
-            <Detail label="Reason" value={review.reason} />
-            <Detail label="System" value={review.ai_system_id} href={`/systems/${review.ai_system_id}`} />
-            <Detail label="Run" value={review.model_run_id} href={`/runs/${review.model_run_id}`} />
-            <Detail label="Created" value={formatDateTime(review.created_at)} />
-            {review.decided_at ? <Detail label="Decided" value={formatDateTime(review.decided_at)} /> : null}
-            {review.reviewer_name ? <Detail label="Reviewer" value={review.reviewer_name} /> : null}
+            <DetailItem label="Reason" value={review.reason} />
+            <DetailItem label="System" value={review.ai_system_id} href={`/systems/${review.ai_system_id}`} />
+            <DetailItem label="Run" value={review.model_run_id} href={`/runs/${review.model_run_id}`} />
+            <DetailItem label="Created" value={formatDateTime(review.created_at)} />
+            {review.decided_at ? <DetailItem label="Decided" value={formatDateTime(review.decided_at)} /> : null}
+            {review.reviewer_name ? <DetailItem label="Reviewer" value={review.reviewer_name} /> : null}
           </dl>
           <p className="mt-5 rounded-lg border border-line-700 bg-navy-900 p-4 text-sm leading-6 text-[#A8B8CA]">{review.summary}</p>
         </Panel>
@@ -66,10 +67,10 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
         <Panel className="p-5 md:col-span-5">
           <h2 className="text-base font-semibold text-[#E6EEF8]">Risk Flags</h2>
           <div className="mt-4 grid gap-3">
-            <FlagCard label="Input PII" active={run.input_pii_result?.pii_detected === true} details={(run.input_pii_result?.pii_types ?? []).join(", ")} />
-            <FlagCard label="Output PII" active={run.output_pii_result?.pii_detected === true} details={(run.output_pii_result?.pii_types ?? []).join(", ")} />
-            <FlagCard label="Hallucination" active={run.evaluation?.hallucination_flag === true} details={run.evaluation?.evaluation_summary ?? "No evaluation summary recorded."} />
-            <FlagCard
+            <SignalFlagCard label="Input PII" active={run.input_pii_result?.pii_detected === true} details={(run.input_pii_result?.pii_types ?? []).join(", ")} />
+            <SignalFlagCard label="Output PII" active={run.output_pii_result?.pii_detected === true} details={(run.output_pii_result?.pii_types ?? []).join(", ")} />
+            <SignalFlagCard label="Hallucination" active={run.evaluation?.hallucination_flag === true} details={run.evaluation?.evaluation_summary ?? "No evaluation summary recorded."} />
+            <SignalFlagCard
               label="Evaluation Review"
               active={run.evaluation?.requires_human_review === true}
               details={run.evaluation ? `Score ${run.evaluation.evaluation_score}/100; threshold ${run.evaluation.threshold}/100.` : "No evaluation recorded."}
@@ -100,6 +101,11 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
           </div>
         </Panel>
 
+        <Panel className="p-5 md:col-span-12">
+          <h2 className="text-base font-semibold text-[#E6EEF8]">Gateway Step Timeline</h2>
+          <RunStepsPanel steps={run.run_steps} />
+        </Panel>
+
         <Panel className="p-5 md:col-span-7">
           <h2 className="text-base font-semibold text-[#E6EEF8]">Incidents</h2>
           {runIncidents.length > 0 ? (
@@ -127,67 +133,9 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
 
         <Panel className="p-5 md:col-span-5">
           <h2 className="text-base font-semibold text-[#E6EEF8]">Retrieved Documents</h2>
-          {run.retrieved_documents.length > 0 ? (
-            <div className="mt-4 space-y-3">
-              {run.retrieved_documents.map((document) => (
-                <div key={document.id} className="rounded-lg border border-line-700 bg-navy-900 p-4">
-                  <p className="font-mono text-xs uppercase tracking-[0.04em] text-[#718198]">{document.source_label}</p>
-                  <p className="mt-3 text-sm leading-6 text-[#E6EEF8]">{document.content}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-[#A8B8CA]">No retrieved documents were attached to this run.</p>
-          )}
+          <RetrievedDocumentsPanel documents={run.retrieved_documents} dense />
         </Panel>
       </section>
     </AppShell>
-  );
-}
-
-function Detail({ label, value, href }: { label: string; value: string; href?: string }) {
-  return (
-    <div>
-      <dt className="text-xs font-semibold uppercase tracking-[0.04em] text-[#718198]">{label}</dt>
-      <dd className="mt-1 break-all font-mono text-xs text-[#E6EEF8]">
-        {href ? (
-          <Link href={href} className="text-signal-cyan hover:text-[#E6EEF8]">
-            {value}
-          </Link>
-        ) : (
-          value
-        )}
-      </dd>
-    </div>
-  );
-}
-
-function FlagCard({ label, active, details }: { label: string; active: boolean; details: string }) {
-  return (
-    <div className="rounded-lg border border-line-700 bg-navy-900 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.04em] text-[#718198]">{label}</p>
-        <span className={active ? "text-xs font-semibold text-amber-200" : "text-xs font-semibold text-emerald-200"}>{active ? "Flagged" : "Clear"}</span>
-      </div>
-      <p className="mt-3 text-sm leading-6 text-[#A8B8CA]">{details || "No details recorded."}</p>
-    </div>
-  );
-}
-
-function ScoreCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg border border-line-700 bg-navy-900 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.04em] text-[#718198]">{label}</p>
-      <p className="mt-2 font-mono text-2xl font-semibold text-[#E6EEF8]">{value}/100</p>
-    </div>
-  );
-}
-
-function EvidenceBlock({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.04em] text-[#718198]">{label}</p>
-      <p className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg border border-line-700 bg-navy-900 p-4 text-sm leading-6 text-[#E6EEF8]">{value}</p>
-    </div>
   );
 }

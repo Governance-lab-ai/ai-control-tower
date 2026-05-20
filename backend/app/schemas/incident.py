@@ -21,3 +21,9 @@ class IncidentResponse(BaseModel):
     status: IncidentStatus
     created_at: datetime
     updated_at: datetime
+
+
+class IncidentUpdateRequest(BaseModel):
+    status: IncidentStatus
+    actor: str = "local-reviewer"
+    notes: str | None = None

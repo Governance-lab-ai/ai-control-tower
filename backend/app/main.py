@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.ai_systems import router as ai_systems_router
+from app.api.audit_events import router as audit_events_router
 from app.api.evaluations import router as evaluations_router
 from app.api.governance import router as governance_router
 from app.api.health import router as health_router
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(health_router)
     app.include_router(ai_systems_router)
+    app.include_router(audit_events_router)
     app.include_router(evaluations_router)
     app.include_router(governance_router)
     app.include_router(human_reviews_router)

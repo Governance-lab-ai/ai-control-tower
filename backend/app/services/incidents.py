@@ -58,10 +58,47 @@ def list_incidents_for_system(db: Session, system_id: UUID) -> list[Incident]:
     return list(db.scalars(statement).all())
 
 
+def list_incidents_for_run(db: Session, run_id: UUID) -> list[Incident]:
+    statement = select(Incident).where(Incident.model_run_id == run_id).order_by(Incident.created_at.desc())
+    return list(db.scalars(statement).all())
+
+
 def get_incident(db: Session, incident_id: UUID) -> Incident:
     incident = db.get(Incident, incident_id)
     if incident is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"code": "INCIDENT_NOT_FOUND"})
+    return incident
+
+
+def update_incident_status(
+    db: Session,
+    *,
+    incident_id: UUID,
+    status_: str,
+    actor: str,
+    notes: str | None = None,
+) -> Incident:
+    incident = get_incident(db, incident_id)
+    previous_status = incident.status
+    incident.status = status_
+    db.flush()
+    create_audit_event(
+        db,
+        actor=actor,
+        action="incident.status_changed",
+        entity_type="incident",
+        entity_id=incident.id,
+        summary=f"Incident status changed from {previous_status} to {status_}",
+        metadata={
+            "ai_system_id": str(incident.ai_system_id),
+            "model_run_id": str(incident.model_run_id) if incident.model_run_id else None,
+            "previous_status": previous_status,
+            "new_status": status_,
+            "notes": notes,
+        },
+    )
+    db.commit()
+    db.refresh(incident)
     return incident
 
 

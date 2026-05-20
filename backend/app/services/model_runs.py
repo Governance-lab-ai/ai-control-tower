@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.ai_system import AISystem
-from app.models.model_run import ModelRun, RetrievedDocument
+from app.models.model_run import ModelRun, RetrievedDocument, RunStep
 
 
 def estimate_local_cost_usd(prompt: str, input_text: str, output_text: str, retrieved_documents: list[str]) -> float:
@@ -67,10 +67,45 @@ def create_model_run(
     return model_run
 
 
+def create_run_step(
+    db: Session,
+    *,
+    model_run_id: UUID,
+    step_type: str,
+    name: str,
+    status_: str,
+    input_summary: str | None = None,
+    output_summary: str | None = None,
+    metadata: dict | None = None,
+    latency_ms: int | None = None,
+) -> RunStep:
+    run_step = RunStep(
+        model_run_id=model_run_id,
+        step_type=step_type,
+        name=name,
+        status=status_,
+        input_summary=input_summary,
+        output_summary=output_summary,
+        metadata_=metadata or {},
+        latency_ms=latency_ms,
+    )
+    db.add(run_step)
+    db.flush()
+    return run_step
+
+
+def _model_run_load_options():
+    return (
+        selectinload(ModelRun.retrieved_documents),
+        selectinload(ModelRun.evaluation),
+        selectinload(ModelRun.run_steps),
+    )
+
+
 def list_model_runs(db: Session) -> list[ModelRun]:
     statement = (
         select(ModelRun)
-        .options(selectinload(ModelRun.retrieved_documents), selectinload(ModelRun.evaluation))
+        .options(*_model_run_load_options())
         .order_by(ModelRun.created_at.desc())
     )
     return list(db.scalars(statement).all())
@@ -79,7 +114,7 @@ def list_model_runs(db: Session) -> list[ModelRun]:
 def get_model_run(db: Session, run_id: UUID) -> ModelRun:
     statement = (
         select(ModelRun)
-        .options(selectinload(ModelRun.retrieved_documents), selectinload(ModelRun.evaluation))
+        .options(*_model_run_load_options())
         .where(ModelRun.id == run_id)
     )
     model_run = db.scalars(statement).first()
@@ -95,7 +130,7 @@ def list_model_runs_for_system(db: Session, system_id: UUID) -> list[ModelRun]:
 
     statement = (
         select(ModelRun)
-        .options(selectinload(ModelRun.retrieved_documents), selectinload(ModelRun.evaluation))
+        .options(*_model_run_load_options())
         .where(ModelRun.ai_system_id == system_id)
         .order_by(ModelRun.created_at.desc())
     )

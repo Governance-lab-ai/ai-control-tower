@@ -75,6 +75,7 @@ Test cases:
 - PII detected in output creates a pending human review item.
 - Failed evaluation or hallucination flag creates a pending human review item.
 - High-risk systems with human oversight required create a pending human review item.
+- Run-specific incident lookup returns incidents linked to the reviewed model run.
 - Reviewer can approve, reject, or escalate a pending review with notes.
 - Decided reviews cannot be decided a second time.
 - Reviewer decisions create audit events.

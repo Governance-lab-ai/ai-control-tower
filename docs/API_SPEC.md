@@ -244,11 +244,13 @@ Blocked response:
 Episode 3 gateway rules:
 
 - Missing AI system returns `404` with `AI_SYSTEM_NOT_FOUND`.
-- `approved` systems execute through `LocalMockLLMProvider`.
+- `approved` systems execute through the configured backend `LLMProvider`.
 - `pending` systems return `requires_review`, do not execute, and create a model-run shell.
 - `blocked` and `retired` systems return `blocked`, do not execute, and create a model-run shell.
 - Gateway attempts create audit events with actions such as `governance.run.executed`, `governance.run.blocked`, and `governance.run.requires_review`.
 - Gateway attempts create persistent `model_runs` records and one `retrieved_documents` row for each supplied retrieved document. Non-executed shells have `output_text: null`, `latency_ms: 0`, `cost_usd: 0`, and `model_version: "not_executed"`.
+- Failed provider calls create `failed` model-run shell records and run-step evidence so the attempted provider, latency, and error are inspectable.
+- `run_steps` records approval, PII, provider call, evaluation, and review-routing evidence for each run. It logs structured decisions and metadata, not private model chain-of-thought.
 
 ## Model runs
 
@@ -259,6 +261,10 @@ Returns all persisted model runs, newest first.
 ### `GET /model-runs/{run_id}`
 
 Returns one model run with retrieved documents.
+
+### `GET /model-runs/{run_id}/incidents`
+
+Returns incidents linked to one model run, newest first. Review detail pages use this targeted endpoint instead of fetching all incidents and filtering in the frontend.
 
 Response:
 
@@ -312,6 +318,24 @@ Response:
       "ordinal": 1,
       "created_at": "2026-05-19T10:00:00Z"
     }
+  ],
+  "run_steps": [
+    {
+      "id": "66666666-6666-6666-6666-666666666666",
+      "model_run_id": "22222222-2222-2222-2222-222222222222",
+      "step_type": "provider_call",
+      "name": "LLM provider call",
+      "status": "completed",
+      "input_summary": "Provider local_mock received the governed prompt and input.",
+      "output_summary": "Provider returned output through model mock-governance-gateway.",
+      "metadata": {
+        "provider": "local_mock",
+        "model": "mock-governance-gateway",
+        "model_version": "local-mock-v1"
+      },
+      "latency_ms": 84,
+      "created_at": "2026-05-19T10:00:00Z"
+    }
   ]
 }
 ```
@@ -355,28 +379,23 @@ Returns all incidents, newest first.
 
 Returns one incident.
 
-### `GET /ai-systems/{system_id}/incidents`
+### `PATCH /incidents/{incident_id}`
 
-Returns incidents for a selected AI system.
-
-## Data sources
-
-### `GET /api/v1/data-sources`
-
-Returns registered data sources.
-
-### `POST /api/v1/data-sources`
+Updates incident status and records an audit event.
 
 Request:
 
 ```json
 {
-  "name": "Zendesk",
-  "source_type": "support",
-  "description": "Customer support tickets",
-  "sensitivity": "personal"
+  "status": "under_review",
+  "actor": "local-reviewer",
+  "notes": "Reviewer has started investigation."
 }
 ```
+
+### `GET /ai-systems/{system_id}/incidents`
+
+Returns incidents for a selected AI system.
 
 ## Prompt versions
 
@@ -400,72 +419,6 @@ Request:
 ### `PATCH /prompt-versions/{prompt_version_id}/activate`
 
 Activate prompt version. Activating one version retires the previous active version for that system. Newly registered systems receive a default active `v1` prompt version.
-
-## Governance gateway
-
-### `POST /governance/run`
-
-Primary runtime endpoint.
-
-Request:
-
-```json
-{
-  "ai_system_id": "sys_001",
-  "input_text": "Customer Sarah says her order did not arrive. Her email is sarah@example.test.",
-  "prompt_override": null,
-  "retrieval_request": {
-    "enabled": true,
-    "query": "refund policy delayed order",
-    "max_documents": 3
-  },
-  "metadata": {
-    "source_app": "support-console",
-    "environment": "local-demo"
-  }
-}
-```
-
-Successful response:
-
-```json
-{
-  "model_run_id": "run_001",
-  "output_text": "The customer reports a missing order and requests support. Suggested next step: verify delivery status and provide refund or replacement options.",
-  "route_decision": "allow_with_review",
-  "route_reasons": [
-    "Personal data detected in input",
-    "System requires human oversight"
-  ],
-  "evaluation": {
-    "overall_score": 82,
-    "pii_detected": true,
-    "pii_types": ["email"],
-    "hallucination_flag": false,
-    "requires_human_review": true
-  },
-  "review_id": "rev_001",
-  "incident_id": null,
-  "cost_usd": 0.0021,
-  "latency_ms": 840
-}
-```
-
-Blocked response:
-
-```json
-{
-  "model_run_id": "run_002",
-  "output_text": null,
-  "route_decision": "block",
-  "route_reasons": [
-    "AI system approval status is blocked",
-    "Model execution is not permitted"
-  ],
-  "review_id": null,
-  "incident_id": "inc_001"
-}
-```
 
 ## Model runs
 
@@ -500,6 +453,11 @@ Returns full detail for authorised users:
 - Review status.
 - Incident links.
 - Audit event links.
+- Gateway step timeline.
+
+### `GET /model-runs/{run_id}/incidents`
+
+Returns incidents linked to the selected model run, newest first.
 
 ## Evaluations
 
@@ -598,7 +556,19 @@ Automatic review creation rules:
 - Evaluation raises a hallucination flag.
 - High-risk systems with human oversight required generate output.
 
-## Incidents
+## Audit events
+
+### `GET /audit-events`
+
+Returns append-only audit events, newest first. Optional filters are `actor`, `action`, `entity_type`, `entity_id`, and `limit`.
+
+### `GET /audit-events/{event_id}`
+
+Returns one audit event.
+
+## Future filtered incident APIs
+
+The local MVP currently exposes root incident endpoints documented above. Stable `/api/v1` filtered routes remain planned.
 
 ### `GET /api/v1/incidents`
 
@@ -626,12 +596,14 @@ Request:
 ```json
 {
   "status": "resolved",
-  "severity": "medium",
-  "resolution_notes": "Prompt updated to redact email addresses. Reviewer training note added."
+  "actor": "local-reviewer",
+  "notes": "Prompt updated to redact email addresses. Reviewer training note added."
 }
 ```
 
-## Audit logs
+## Future audit export APIs
+
+The local MVP currently exposes `GET /audit-events` and `GET /audit-events/{event_id}`. Filtered export remains planned.
 
 ### `GET /api/v1/audit-events`
 

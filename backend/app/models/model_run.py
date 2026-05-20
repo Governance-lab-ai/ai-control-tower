@@ -44,6 +44,12 @@ class ModelRun(Base):
         cascade="all, delete-orphan",
         order_by="HumanReview.created_at.desc()",
     )
+    run_steps: Mapped[list["RunStep"]] = relationship(
+        "RunStep",
+        back_populates="model_run",
+        cascade="all, delete-orphan",
+        order_by="RunStep.created_at",
+    )
 
 
 class RetrievedDocument(Base):
@@ -57,3 +63,20 @@ class RetrievedDocument(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     model_run: Mapped[ModelRun] = relationship("ModelRun", back_populates="retrieved_documents")
+
+
+class RunStep(Base):
+    __tablename__ = "run_steps"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    model_run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("model_runs.id"), nullable=False, index=True)
+    step_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    status: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    input_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    output_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    metadata_: Mapped[dict] = mapped_column("metadata", JSON, nullable=False, default=dict)
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    model_run: Mapped[ModelRun] = relationship("ModelRun", back_populates="run_steps")

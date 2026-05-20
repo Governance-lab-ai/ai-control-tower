@@ -52,6 +52,7 @@ flowchart LR
   API --> TELEMETRY[Telemetry Provider]
   API --> SECRETS[Secret Provider]
 
+  LLM --> OLLAMA[Optional local Ollama]
   LLM -.later.-> AZOAI[Azure OpenAI / Foundry]
   SAFETY -.later.-> AICS[Azure AI Content Safety]
   TELEMETRY -.later.-> APPINS[Application Insights]
@@ -76,7 +77,7 @@ flowchart TB
     Eval[Evaluation Services]
     Review[Review Router]
     Audit[Audit Logger]
-    MockLLM[Mock / Optional LLM Provider]
+    MockLLM[Mock / Ollama LLM Provider]
     LocalSafety[Local Safety Checks]
   end
 
@@ -106,7 +107,7 @@ The initial local monorepo uses a small service split that matches the target ar
 - `docker-compose.yml`: local Postgres, backend, and frontend orchestration.
 - `infra/`: local orchestration notes and placeholder location for later Azure-aware templates.
 
-Provider integrations remain interface-level decisions for later phases. No LLM calls run in the frontend, and no Azure resources are provisioned by the local compose setup.
+Provider integrations remain backend interface-level decisions. No LLM calls run in the frontend, and no Azure resources are provisioned by the local compose setup. The current backend can use the deterministic mock provider or a local Ollama HTTP provider via the same `LLMProvider` interface.
 
 ## Target Azure-aware architecture
 
@@ -149,6 +150,7 @@ sequenceDiagram
   participant Eval as Evaluation Layer
   participant Review as Review Router
   participant Audit as Audit Logger
+  participant Steps as Run Step Timeline
 
   User->>API: POST /governance/run
   API->>DB: Load AI system, prompt version, policies
@@ -159,10 +161,12 @@ sequenceDiagram
 
   alt Blocked or unapproved
     API->>DB: Store blocked model_run shell
+    API->>Steps: Record approval, PII, routing steps
     API->>Audit: Record blocked run
     API-->>User: 403/422 with route=blocked
   else Hold before execution
     API->>Review: Create human review item
+    API->>Steps: Record approval, PII, routing steps
     API->>Audit: Record hold decision
     API-->>User: 202 route=held_for_review
   else Allowed
@@ -171,6 +175,7 @@ sequenceDiagram
     API->>Eval: Output safety, PII, groundedness, relevance
     Eval-->>API: Evaluation result
     API->>DB: Store run + retrieved docs + evaluation
+    API->>Steps: Record approval, provider, PII, evaluation, routing steps
     API->>Review: Create review if thresholds require
     API->>Audit: Record run and route decision
     API-->>User: Result + governance metadata
@@ -181,17 +186,20 @@ sequenceDiagram
 
 Episode 3 implements the first synchronous gateway endpoint at `POST /governance/run`. It enforces approval status before provider execution:
 
-- approved systems execute through the local mock LLM provider.
+- approved systems execute through the configured backend `LLMProvider`.
 - pending systems return `requires_review` without model execution.
 - blocked and retired systems return `blocked` without model execution.
 - missing systems return `AI_SYSTEM_NOT_FOUND`.
 
-The provider boundary is `LLMProvider`, currently backed by `LocalMockLLMProvider`. `OllamaLLMProvider` is available for optional local model execution when `LLM_PROVIDER=ollama` and a local Ollama service is running. `AzureOpenAIProvider` exists only as a placeholder with TODOs and no credential requirement. OpenAI remains planned as a backend adapter using the same interface. No provider may be called from frontend code; all providers must still pass through approval checks, PII checks, run logging, incidents, evaluations, and audit events.
+The provider boundary is `LLMProvider`, currently backed by `LocalMockLLMProvider` by default. `OllamaLLMProvider` is available for optional local model execution when `LLM_PROVIDER=ollama` and a local Ollama service is running. `AzureOpenAIProvider` exists only as a placeholder with TODOs and no credential requirement. OpenAI remains planned as a backend adapter using the same interface. No provider may be called from frontend code; all providers must still pass through approval checks, PII checks, run logging, incidents, evaluations, and audit events.
+
+Each model run now has a `run_steps` timeline. It records explainable gateway evidence such as approval check, input/output PII checks, provider call status, evaluation result, and review routing. This is not hidden chain-of-thought logging; it is structured operational evidence about what the system checked, called, decided, and recorded.
 
 Episode 4 persists executed gateway calls as model-run evidence:
 
 - `model_runs` stores prompt, input, output, provider, model, model version, status, latency, estimated cost, and timestamp.
 - `retrieved_documents` stores supplied retrieval context linked to the run.
+- `run_steps` stores the gateway step timeline linked to the run.
 - Prompt version linkage uses the active prompt version for the system when one exists. Newly registered systems receive a default active `v1` prompt version.
 - Blocked and pending attempts create model-run shell records with no output, zero latency, zero cost, and linked retrieved documents.
 
@@ -287,7 +295,7 @@ Responsible for isolating external dependencies:
 
 | Interface | Local implementation | Azure implementation |
 |---|---|---|
-| `LLMProvider` | Mock or optional OpenAI/Anthropic | Azure OpenAI / Foundry |
+| `LLMProvider` | Mock or optional Ollama | Azure OpenAI / Foundry |
 | `SafetyProvider` | Regex/heuristics | Azure AI Content Safety |
 | `GroundednessProvider` | Source-overlap heuristic | Azure groundedness detection |
 | `SecretManager` | Environment variables | Azure Key Vault |

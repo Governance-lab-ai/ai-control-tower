@@ -6,11 +6,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.ai_system import AISystem
-from app.models.evaluation import Evaluation
 from app.models.human_review import HumanReview
 from app.models.model_run import ModelRun
 from app.schemas.human_review import HumanReviewDecisionRequest
 from app.services.audit import create_audit_event
+from app.services.review_constants import REVIEW_STATUS_PENDING, priority_for_system
 
 
 def create_review_if_needed(
@@ -27,7 +27,7 @@ def create_review_if_needed(
         select(HumanReview).where(
             HumanReview.model_run_id == model_run_id,
             HumanReview.reason == reason,
-            HumanReview.status == "pending",
+            HumanReview.status == REVIEW_STATUS_PENDING,
         )
     )
     if existing is not None:
@@ -36,9 +36,9 @@ def create_review_if_needed(
     review = HumanReview(
         ai_system_id=ai_system.id,
         model_run_id=model_run_id,
-        status="pending",
+        status=REVIEW_STATUS_PENDING,
         reason=reason,
-        priority=priority or _priority_for_system(ai_system),
+        priority=priority or priority_for_system(ai_system),
         summary=summary,
     )
     db.add(review)
@@ -60,90 +60,7 @@ def create_review_if_needed(
     return review
 
 
-def create_reviews_for_pii(
-    db: Session,
-    *,
-    actor: str,
-    ai_system: AISystem,
-    model_run_id: UUID,
-    input_pii_detected: bool,
-    output_pii_detected: bool,
-) -> list[HumanReview]:
-    reviews: list[HumanReview] = []
-    if input_pii_detected:
-        reviews.append(
-            create_review_if_needed(
-                db,
-                actor=actor,
-                ai_system=ai_system,
-                model_run_id=model_run_id,
-                reason="pii_detected_input",
-                summary="Input PII was detected. Reviewer should inspect the redacted evidence and decide whether the run can be used.",
-                priority="high" if ai_system.risk_level in {"high", "critical"} else "medium",
-            )
-        )
-    if output_pii_detected:
-        reviews.append(
-            create_review_if_needed(
-                db,
-                actor=actor,
-                ai_system=ai_system,
-                model_run_id=model_run_id,
-                reason="pii_detected_output",
-                summary="Output PII was detected. Reviewer should inspect the generated output before any downstream use.",
-                priority="critical" if ai_system.risk_level in {"high", "critical"} else "high",
-            )
-        )
-    return reviews
-
-
-def create_review_for_high_risk_oversight(
-    db: Session,
-    *,
-    actor: str,
-    ai_system: AISystem,
-    model_run_id: UUID,
-) -> HumanReview | None:
-    if ai_system.risk_level != "high" or not ai_system.human_oversight_required:
-        return None
-    return create_review_if_needed(
-        db,
-        actor=actor,
-        ai_system=ai_system,
-        model_run_id=model_run_id,
-        reason="high_risk_human_oversight",
-        summary="High-risk system requires human oversight for generated outputs.",
-        priority="high",
-    )
-
-
-def create_review_for_evaluation(
-    db: Session,
-    *,
-    actor: str,
-    ai_system: AISystem,
-    model_run: ModelRun,
-    evaluation: Evaluation,
-) -> HumanReview | None:
-    if not evaluation.requires_human_review:
-        return None
-    reason = "hallucination_flag" if evaluation.hallucination_flag else "evaluation_below_threshold"
-    summary = (
-        f"Evaluation requires review. Score {evaluation.evaluation_score}/100, "
-        f"threshold {evaluation.threshold}/100. {evaluation.evaluation_summary}"
-    )
-    return create_review_if_needed(
-        db,
-        actor=actor,
-        ai_system=ai_system,
-        model_run_id=model_run.id,
-        reason=reason,
-        summary=summary,
-        priority="critical" if ai_system.risk_level == "critical" or evaluation.hallucination_flag else _priority_for_system(ai_system),
-    )
-
-
-def list_reviews(db: Session, *, status_filter: str | None = "pending") -> list[HumanReview]:
+def list_reviews(db: Session, *, status_filter: str | None = REVIEW_STATUS_PENDING) -> list[HumanReview]:
     statement = select(HumanReview).order_by(HumanReview.created_at.desc())
     if status_filter:
         statement = statement.where(HumanReview.status == status_filter)
@@ -167,7 +84,7 @@ def get_review(db: Session, review_id: UUID) -> HumanReview:
 
 def decide_review(db: Session, *, review_id: UUID, payload: HumanReviewDecisionRequest) -> HumanReview:
     review = get_review(db, review_id)
-    if review.status != "pending":
+    if review.status != REVIEW_STATUS_PENDING:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"code": "HUMAN_REVIEW_ALREADY_DECIDED"})
 
     review.status = payload.decision
@@ -200,13 +117,3 @@ def decide_review(db: Session, *, review_id: UUID, payload: HumanReviewDecisionR
     db.commit()
     db.refresh(review)
     return review
-
-
-def _priority_for_system(ai_system: AISystem) -> str:
-    if ai_system.risk_level == "critical":
-        return "critical"
-    if ai_system.risk_level == "high":
-        return "high"
-    if ai_system.risk_level == "medium":
-        return "medium"
-    return "low"

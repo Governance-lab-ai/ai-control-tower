@@ -59,6 +59,7 @@ def test_model_run_detail_and_system_history_endpoints() -> None:
     assert detail["latency_ms"] >= 1
     assert detail["cost_usd"] > 0
     assert len(detail["retrieved_documents"]) == 2
+    assert any(step["step_type"] == "provider_call" for step in detail["run_steps"])
 
     assert system_runs_response.status_code == 200
     system_runs = system_runs_response.json()
