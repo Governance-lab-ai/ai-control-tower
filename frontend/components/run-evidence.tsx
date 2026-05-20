@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import type { Evaluation, PIIResult, RetrievedDocument } from "@/lib/types";
+import { formatDateTime, formatLatency } from "@/lib/format";
+import type { Evaluation, PIIResult, RetrievedDocument, RunStep } from "@/lib/types";
 
 export function DetailItem({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
@@ -116,6 +117,41 @@ export function RetrievedDocumentsPanel({ documents, dense = false }: { document
         <div key={document.id} className="rounded-lg border border-line-700 bg-navy-900 p-4">
           <p className="font-mono text-xs uppercase tracking-[0.04em] text-[#718198]">{document.source_label}</p>
           <p className="mt-3 text-sm leading-6 text-[#E6EEF8]">{document.content}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function RunStepsPanel({ steps }: { steps: RunStep[] }) {
+  if (steps.length === 0) {
+    return <p className="mt-4 text-sm text-[#A8B8CA]">No gateway step evidence has been recorded for this run.</p>;
+  }
+
+  return (
+    <div className="mt-4 space-y-3">
+      {steps.map((step) => (
+        <div key={step.id} className="rounded-lg border border-line-700 bg-navy-900 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-medium text-[#E6EEF8]">{step.name}</p>
+              <p className="mt-1 font-mono text-xs uppercase tracking-[0.04em] text-[#718198]">{step.step_type}</p>
+            </div>
+            <div className="text-right">
+              <p className="font-mono text-xs font-semibold uppercase tracking-[0.04em] text-signal-cyan">{step.status}</p>
+              <p className="mt-1 text-xs text-[#718198]">
+                {formatDateTime(step.created_at)}
+                {step.latency_ms !== null ? ` · ${formatLatency(step.latency_ms)}` : ""}
+              </p>
+            </div>
+          </div>
+          {step.input_summary ? <p className="mt-3 text-sm leading-6 text-[#A8B8CA]">{step.input_summary}</p> : null}
+          {step.output_summary ? <p className="mt-2 text-sm leading-6 text-[#E6EEF8]">{step.output_summary}</p> : null}
+          {Object.keys(step.metadata ?? {}).length > 0 ? (
+            <pre className="mt-3 max-h-52 overflow-auto rounded-md border border-line-700 bg-panel-875 p-3 text-xs leading-5 text-[#A8B8CA]">
+              {JSON.stringify(step.metadata, null, 2)}
+            </pre>
+          ) : null}
         </div>
       ))}
     </div>

@@ -76,6 +76,7 @@ Deliverables:
 - Mock LLM provider.
 - Model run table.
 - Retrieved document table.
+- Run-step evidence timeline.
 - Cost and latency capture.
 - Prompt version linkage.
 - Pre-execution checks for approval status and prompt policy.
@@ -84,10 +85,11 @@ Deliverables:
 
 Acceptance criteria:
 
-- Approved system can execute a mock model run.
+- Approved system can execute through the configured backend provider, including mock locally and Ollama when configured.
 - Pending/blocked system cannot execute.
 - Every execution attempt is logged.
 - Every execution attempt creates an audit event.
+- Failed provider calls create failed run shells instead of disappearing.
 
 ## Phase 3 — Evaluation layer and risk routing
 

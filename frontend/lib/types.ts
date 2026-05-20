@@ -55,6 +55,19 @@ export type RetrievedDocument = {
   created_at: string;
 };
 
+export type RunStep = {
+  id: string;
+  model_run_id: string;
+  step_type: string;
+  name: string;
+  status: string;
+  input_summary: string | null;
+  output_summary: string | null;
+  metadata: Record<string, unknown>;
+  latency_ms: number | null;
+  created_at: string;
+};
+
 export type ModelRunStatus = "executed" | "failed" | "blocked" | "requires_review";
 
 export type PIIResult = {
@@ -101,6 +114,7 @@ export type ModelRun = {
   output_pii_result: PIIResult;
   created_at: string;
   retrieved_documents: RetrievedDocument[];
+  run_steps: RunStep[];
   evaluation: Evaluation | null;
 };
 
@@ -118,6 +132,23 @@ export type Incident = {
   status: IncidentStatus;
   created_at: string;
   updated_at: string;
+};
+
+export type IncidentUpdateRequest = {
+  status: IncidentStatus;
+  actor: string;
+  notes?: string;
+};
+
+export type AuditEvent = {
+  id: string;
+  actor: string;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  summary: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
 };
 
 export type HumanReviewStatus = "pending" | "approved" | "rejected" | "escalated";

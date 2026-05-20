@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { AppShell } from "@/components/app-shell";
-import { DetailItem, EvaluationSummaryPanel, EvidenceBlock, PiiResultCard, RetrievedDocumentsPanel } from "@/components/run-evidence";
+import { DetailItem, EvaluationSummaryPanel, EvidenceBlock, PiiResultCard, RetrievedDocumentsPanel, RunStepsPanel } from "@/components/run-evidence";
 import { RunStatusBadge } from "@/components/run-status-badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { Panel } from "@/components/ui/panel";
@@ -55,6 +55,11 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
             <EvidenceBlock label="Input" value={run.input_text} />
             <EvidenceBlock label="Output" value={run.output_text ?? "No model output was produced for this run."} />
           </div>
+        </Panel>
+
+        <Panel className="p-5 md:col-span-12">
+          <h2 className="text-base font-semibold text-[#E6EEF8]">Gateway Step Timeline</h2>
+          <RunStepsPanel steps={run.run_steps} />
         </Panel>
 
         <Panel className="p-5 md:col-span-12">

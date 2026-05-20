@@ -1,6 +1,7 @@
 import type {
   AISystem,
   AISystemCreate,
+  AuditEvent,
   ApprovalStatus,
   Evaluation,
   GovernanceRunRequest,
@@ -9,6 +10,7 @@ import type {
   HumanReviewDecisionRequest,
   HumanReviewDetail,
   Incident,
+  IncidentUpdateRequest,
   ModelRun,
 } from "@/lib/types";
 
@@ -105,6 +107,17 @@ export async function getIncidents(): Promise<Incident[]> {
   return apiFetch<Incident[]>("/incidents", { cache: "no-store" });
 }
 
+export async function getIncident(id: string): Promise<Incident> {
+  return apiFetch<Incident>(`/incidents/${id}`, { cache: "no-store" });
+}
+
+export async function updateIncident(id: string, payload: IncidentUpdateRequest): Promise<Incident> {
+  return apiFetch<Incident>(`/incidents/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function getSystemIncidents(systemId: string): Promise<Incident[]> {
   return apiFetch<Incident[]>(`/ai-systems/${systemId}/incidents`, { cache: "no-store" });
 }
@@ -127,4 +140,8 @@ export async function decideReview(id: string, payload: HumanReviewDecisionReque
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export async function getAuditEvents(): Promise<AuditEvent[]> {
+  return apiFetch<AuditEvent[]>("/audit-events", { cache: "no-store" });
 }

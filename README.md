@@ -131,6 +131,20 @@ cd frontend
 npm run typecheck
 ```
 
+## Local Ollama Provider
+
+The backend provider boundary is interchangeable. The frontend never calls an LLM directly; every model request goes through `POST /governance/run`, then approval, PII, logging, evaluation, review routing, incidents, and audit events are applied.
+
+To test a local Ollama model later, run Ollama on the host and set the backend environment:
+
+```text
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=llama3.1
+```
+
+The same boundary supports the local mock provider today and future Azure/OpenAI adapters later. A failed provider call is still recorded as a failed model-run shell with gateway step evidence.
+
 ## Environment files
 
 Example templates are committed at:

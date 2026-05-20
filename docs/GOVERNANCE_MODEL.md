@@ -177,7 +177,7 @@ Episode 3 implements the first runtime gateway at `POST /governance/run`. Episod
 
 | Approval status | Gateway status | Execution behaviour |
 |---|---|---|
-| `approved` | `executed` | Calls `LocalMockLLMProvider` and returns mock output. |
+| `approved` | `executed` | Calls the configured backend `LLMProvider` and returns governed output. |
 | `pending` | `requires_review` | Does not execute. A model-run shell and governance audit event are recorded. |
 | `blocked` | `blocked` | Does not execute. A model-run shell and governance audit event are recorded. |
 | `retired` | `blocked` | Does not execute. A model-run shell and governance audit event are recorded. |
@@ -186,8 +186,10 @@ Episode 3 implements the first runtime gateway at `POST /governance/run`. Episod
 Provider boundary:
 
 - `LLMProvider` is the backend interface for model execution.
-- `LocalMockLLMProvider` is the only active Episode 3 implementation.
+- `LocalMockLLMProvider` is the default local implementation.
+- `OllamaLLMProvider` can be enabled with `LLM_PROVIDER=ollama` for local model execution through Ollama.
 - `AzureOpenAIProvider` is a placeholder and must not require credentials until the Azure integration phase.
+- Provider calls must never originate from frontend code.
 
 Audit behaviour:
 
@@ -197,6 +199,8 @@ Audit behaviour:
 - Executed calls create `model_runs` records with prompt, input, output, provider metadata, latency, mock cost, and status.
 - Supplied retrieved documents are stored as `retrieved_documents` linked to the model run.
 - Blocked and pending calls create model-run shell records with no output, zero cost, zero latency, and `model_version` set to `not_executed`.
+- Failed provider calls create failed model-run shell records with safe provider-error evidence.
+- `run_steps` records approval checks, PII checks, provider call attempts, evaluation, and review routing for each run. These are operational decision traces, not hidden chain-of-thought logs.
 - Gateway runs link the active prompt version when one exists. Newly registered systems receive a default active `v1` prompt version.
 
 ## V2 multi-agent governance model
@@ -388,6 +392,8 @@ Audit events are required for:
 - Incident creation/update/resolution.
 - Audit export.
 - Integration setting changes.
+
+Audit events identify the actor, action, entity, timestamp, and safe metadata. Full prompts, outputs, and retrieved document text belong in controlled model-run evidence records, not general application logs.
 
 ## Governance posture score
 

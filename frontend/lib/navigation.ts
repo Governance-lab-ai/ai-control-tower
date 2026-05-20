@@ -8,7 +8,7 @@ export function getNavItems(activeLabel: string) {
     { label: "Evaluations", href: "/evaluations", icon: BarChart3, active: activeLabel === "Evaluations" },
     { label: "Reviews", href: "/reviews", icon: ClipboardCheck, active: activeLabel === "Reviews" },
     { label: "Incidents", href: "/incidents", icon: AlertTriangle, active: activeLabel === "Incidents" },
-    { label: "Audit", href: "#", icon: FileClock, active: activeLabel === "Audit" },
+    { label: "Audit", href: "/audit", icon: FileClock, active: activeLabel === "Audit" },
     { label: "Settings", href: "#", icon: Settings, active: activeLabel === "Settings" },
   ];
 }

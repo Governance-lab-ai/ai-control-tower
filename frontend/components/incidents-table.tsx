@@ -26,7 +26,9 @@ export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
           {incidents.map((incident) => (
             <tr key={incident.id} className="hover:bg-panel-825/60">
               <td className="px-5 py-4">
-                <p className="font-medium text-[#E6EEF8]">{incident.title}</p>
+                <Link href={`/incidents/${incident.id}`} className="font-medium text-[#E6EEF8] hover:text-signal-cyan">
+                  {incident.title}
+                </Link>
                 <p className="mt-1 max-w-xl truncate text-xs text-[#A8B8CA]">{incident.description}</p>
               </td>
               <td className="px-5 py-4 font-mono text-xs text-[#A8B8CA]">{incident.incident_type}</td>

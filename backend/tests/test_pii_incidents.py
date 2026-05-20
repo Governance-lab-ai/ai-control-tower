@@ -8,6 +8,7 @@ from sqlalchemy import select
 
 from app.db.session import SessionLocal
 from app.main import app
+from app.models.audit_event import AuditEvent
 from app.models.incident import Incident
 from app.models.model_run import ModelRun
 from tests.helpers.factories import make_ai_system_payload
@@ -92,3 +93,35 @@ def test_gateway_does_not_create_incident_without_pii() -> None:
     assert model_run.input_pii_result["pii_detected"] is False
     assert model_run.output_pii_result["pii_detected"] is False
     assert incidents == []
+
+
+def test_incident_status_update_records_audit_event() -> None:
+    with TestClient(app) as client:
+        system = _create_approved_system(client)
+        run_response = client.post(
+            "/governance/run",
+            json={
+                "ai_system_id": system["id"],
+                "actor": "test:pii-user",
+                "prompt": "Summarise the case for review.",
+                "input_text": "Customer name: Alex Morgan. Email alex.morgan@example.test.",
+                "retrieved_documents": [],
+                "metadata": {"source": "pytest"},
+            },
+        )
+        incident = client.get(f"/model-runs/{run_response.json()['run_id']}/incidents").json()[0]
+        update_response = client.patch(
+            f"/incidents/{incident['id']}",
+            json={"status": "under_review", "actor": "test:incident-reviewer", "notes": "Reviewer picked up the incident."},
+        )
+
+    assert update_response.status_code == 200
+    assert update_response.json()["status"] == "under_review"
+
+    with SessionLocal() as db:
+        updated = db.get(Incident, UUID(incident["id"]))
+        actions = db.scalars(select(AuditEvent.action).where(AuditEvent.entity_id == UUID(incident["id"]))).all()
+
+    assert updated is not None
+    assert updated.status == "under_review"
+    assert "incident.status_changed" in actions

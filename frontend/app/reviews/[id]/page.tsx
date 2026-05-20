@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { IncidentSeverityBadge, IncidentStatusBadge } from "@/components/incident-badges";
 import { ReviewPriorityBadge, ReviewStatusBadge } from "@/components/review-badges";
-import { DetailItem, EvidenceBlock, RetrievedDocumentsPanel, ScoreCard, SignalFlagCard } from "@/components/run-evidence";
+import { DetailItem, EvidenceBlock, RetrievedDocumentsPanel, RunStepsPanel, ScoreCard, SignalFlagCard } from "@/components/run-evidence";
 import { RunStatusBadge } from "@/components/run-status-badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { Panel } from "@/components/ui/panel";
@@ -99,6 +99,11 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
             <EvidenceBlock label="Input" value={run.input_text} />
             <EvidenceBlock label="Output" value={run.output_text ?? "No model output was produced."} />
           </div>
+        </Panel>
+
+        <Panel className="p-5 md:col-span-12">
+          <h2 className="text-base font-semibold text-[#E6EEF8]">Gateway Step Timeline</h2>
+          <RunStepsPanel steps={run.run_steps} />
         </Panel>
 
         <Panel className="p-5 md:col-span-7">

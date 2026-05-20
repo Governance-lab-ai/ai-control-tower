@@ -371,6 +371,8 @@ Episode 6 evaluation additions:
 - `/evaluations?failed_only=true` exposes failed evaluation signals to the frontend.
 - `OllamaLLMProvider` can be enabled with `LLM_PROVIDER=ollama` when a local Ollama service is available.
 - `OllamaEvaluationProvider` can be enabled with `EVALUATION_PROVIDER=ollama_local` and falls back to semantic local evaluation if the local model is unavailable.
+- Gateway runs now persist a `run_steps` evidence timeline for approval checks, PII checks, provider call attempts, evaluation, and review routing.
+- Failed provider calls are recorded as failed model-run shells, so the attempted provider, latency, and safe error summary are inspectable.
 
 Episode 7 human review additions:
 
@@ -379,6 +381,8 @@ Episode 7 human review additions:
 - Review records include status, reason, priority, summary, reviewer identity, decision notes, and decision timestamp.
 - `/reviews`, `/reviews/{review_id}`, and `/reviews/{review_id}/decision` expose the queue, evidence detail, and reviewer decision workflow.
 - `/model-runs/{run_id}/incidents` exposes incidents linked to a run for review detail pages.
+- `/audit-events` and `/audit-events/{event_id}` expose append-only audit events to the frontend audit page.
+- `/incidents/{incident_id}` supports status updates with actor, notes, and an `incident.status_changed` audit event.
 - Reviewer decisions create audit events with the reviewer identity, decision, notes, and timestamp.
 - The frontend includes `/reviews` for the pending queue and `/reviews/[id]` for evidence inspection and decision capture.
 
@@ -588,15 +592,15 @@ class LLMProvider(ABC):
 Current implementation:
 
 - `LocalMockLLMProvider` is active for local deterministic demos.
+- `OllamaLLMProvider` is available for local Ollama model execution through `OLLAMA_BASE_URL` and `OLLAMA_MODEL`.
 - `AzureOpenAIProvider` is a placeholder and intentionally does not require credentials.
 
 Planned provider adapters:
 
-- `OllamaLLMProvider` for local model execution through an Ollama HTTP endpoint.
 - `OpenAILLMProvider` for direct OpenAI API experiments when explicitly configured.
 - `AzureOpenAIProvider` for the Azure integration phase.
 
-All provider adapters must return normalized provider metadata, token/cost/latency information where available, and must only be invoked by the governance gateway after approval and safety checks.
+All provider adapters must return normalized provider metadata, token/cost/latency information where available, and must only be invoked by the governance gateway after approval and safety checks. Frontend code must never call Ollama, OpenAI, Azure OpenAI, or any other model provider directly.
 
 ### Safety provider
 

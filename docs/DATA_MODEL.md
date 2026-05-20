@@ -223,6 +223,8 @@ Episode 4 local MVP implements a focused subset: `id`, `ai_system_id`, nullable 
 
 Episode 5 adds `input_pii_result` and `output_pii_result` JSON fields. These store detector metadata such as `pii_detected`, `pii_types`, redacted snippets, and confidence label.
 
+Episode 7 evidence hardening adds linked `run_steps` records so the UI can show what the gateway checked, attempted, called, and routed for review.
+
 | Column | Type | Notes |
 |---|---|---|
 | `id` | UUID PK | Run ID. |
@@ -259,6 +261,23 @@ Episode 4 local MVP stores supplied retrieved document text as run evidence with
 | `sensitivity` | text | Classification. |
 | `score` | numeric nullable | Retrieval score. |
 | `metadata` | jsonb | Source metadata. |
+
+### `run_steps`
+
+Run steps are structured gateway evidence. They are not model chain-of-thought; they record operational facts about checks, provider calls, evaluation, and routing.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | Step ID. |
+| `model_run_id` | UUID FK | Linked model run. |
+| `step_type` | text | approval_check, pii_check, provider_call, evaluation, review_routing. |
+| `name` | text | Display name. |
+| `status` | text | passed, completed, failed, requires_review, created, skipped, blocked. |
+| `input_summary` | text nullable | Safe description of the step input. |
+| `output_summary` | text nullable | Safe description of the step result. |
+| `metadata` | jsonb | Safe structured evidence. |
+| `latency_ms` | integer nullable | Step latency when relevant. |
+| `created_at` | timestamptz | Timestamp. |
 
 ### `evaluations`
 
@@ -332,14 +351,12 @@ Episode 5 local MVP implements incidents for PII detection. PII incidents are cr
 | Column | Type | Notes |
 |---|---|---|
 | `id` | UUID PK | Audit event ID. |
-| `company_id` | UUID FK | Company. |
-| `actor_user_id` | UUID FK nullable | User/service. |
+| `actor` | text | User/service label. |
 | `action` | text | e.g. system.approved. |
 | `entity_type` | text | ai_system, model_run, incident. |
 | `entity_id` | UUID/text | Entity ID. |
-| `before_state` | jsonb nullable | Redacted previous state. |
-| `after_state` | jsonb nullable | Redacted new state. |
-| `metadata` | jsonb | Request ID, reason, IP, etc. |
+| `summary` | text | Human-readable safe summary. |
+| `metadata` | jsonb | Request ID, reason, provider metadata, redacted evidence. |
 | `created_at` | timestamptz | Timestamp. |
 
 ### `integration_connections`

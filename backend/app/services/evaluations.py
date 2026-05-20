@@ -11,6 +11,7 @@ from app.models.evaluation import Evaluation
 from app.models.model_run import ModelRun
 from app.providers.evaluation import EvaluationRequest, EvaluationResult, get_evaluation_provider
 from app.services.audit import create_audit_event
+from app.services.model_runs import create_run_step
 from app.services.review_policy import create_review_for_evaluation
 
 
@@ -69,7 +70,26 @@ def evaluate_model_run(
             "threshold": evaluation.threshold,
         },
     )
-    create_review_for_evaluation(db, actor=actor, ai_system=ai_system, model_run=model_run, evaluation=evaluation)
+    review = create_review_for_evaluation(db, actor=actor, ai_system=ai_system, model_run=model_run, evaluation=evaluation)
+    create_run_step(
+        db,
+        model_run_id=model_run.id,
+        step_type="evaluation",
+        name="Output evaluation",
+        status_="requires_review" if evaluation.requires_human_review else "passed",
+        input_summary="Evaluation provider scored relevance, groundedness, and overall quality.",
+        output_summary=evaluation.evaluation_summary,
+        metadata={
+            "provider": evaluation.provider,
+            "evaluation_score": evaluation.evaluation_score,
+            "relevance_score": evaluation.relevance_score,
+            "groundedness_score": evaluation.groundedness_score,
+            "hallucination_flag": evaluation.hallucination_flag,
+            "requires_human_review": evaluation.requires_human_review,
+            "threshold": evaluation.threshold,
+            "review_created": review is not None,
+        },
+    )
     return evaluation
 
 
