@@ -58,6 +58,11 @@ def list_incidents_for_system(db: Session, system_id: UUID) -> list[Incident]:
     return list(db.scalars(statement).all())
 
 
+def list_incidents_for_run(db: Session, run_id: UUID) -> list[Incident]:
+    statement = select(Incident).where(Incident.model_run_id == run_id).order_by(Incident.created_at.desc())
+    return list(db.scalars(statement).all())
+
+
 def get_incident(db: Session, incident_id: UUID) -> Incident:
     incident = db.get(Incident, incident_id)
     if incident is None:

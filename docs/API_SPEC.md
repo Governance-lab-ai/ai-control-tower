@@ -260,6 +260,10 @@ Returns all persisted model runs, newest first.
 
 Returns one model run with retrieved documents.
 
+### `GET /model-runs/{run_id}/incidents`
+
+Returns incidents linked to one model run, newest first. Review detail pages use this targeted endpoint instead of fetching all incidents and filtering in the frontend.
+
 Response:
 
 ```json
@@ -500,6 +504,10 @@ Returns full detail for authorised users:
 - Review status.
 - Incident links.
 - Audit event links.
+
+### `GET /model-runs/{run_id}/incidents`
+
+Returns incidents linked to the selected model run, newest first.
 
 ## Evaluations
 

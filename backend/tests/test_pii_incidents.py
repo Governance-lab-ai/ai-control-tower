@@ -41,6 +41,7 @@ def test_gateway_creates_incident_for_synthetic_pii_input_and_output() -> None:
             },
         )
         incidents_response = client.get("/incidents")
+        run_incidents_response = client.get(f"/model-runs/{response.json()['run_id']}/incidents")
 
     assert response.status_code == 200
     body = response.json()
@@ -60,6 +61,8 @@ def test_gateway_creates_incident_for_synthetic_pii_input_and_output() -> None:
 
     assert incidents_response.status_code == 200
     assert any(incident["model_run_id"] == body["run_id"] for incident in incidents_response.json())
+    assert run_incidents_response.status_code == 200
+    assert {incident["incident_type"] for incident in run_incidents_response.json()} == {"pii_detected_input", "pii_detected_output"}
 
 
 def test_gateway_does_not_create_incident_without_pii() -> None:

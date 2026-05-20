@@ -109,6 +109,10 @@ export async function getSystemIncidents(systemId: string): Promise<Incident[]> 
   return apiFetch<Incident[]>(`/ai-systems/${systemId}/incidents`, { cache: "no-store" });
 }
 
+export async function getRunIncidents(runId: string): Promise<Incident[]> {
+  return apiFetch<Incident[]>(`/model-runs/${runId}/incidents`, { cache: "no-store" });
+}
+
 export async function getReviews(status = "pending"): Promise<HumanReview[]> {
   const query = status ? `?status=${encodeURIComponent(status)}` : "";
   return apiFetch<HumanReview[]>(`/reviews${query}`, { cache: "no-store" });

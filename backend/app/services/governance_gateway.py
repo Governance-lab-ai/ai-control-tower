@@ -10,11 +10,11 @@ from app.providers.llm import LLMRequest, get_llm_provider
 from app.schemas.governance import GovernanceRunRequest, GovernanceRunResponse
 from app.services.audit import create_audit_event
 from app.services.evaluations import evaluate_model_run_by_id
-from app.services.human_reviews import create_review_for_high_risk_oversight, create_reviews_for_pii
 from app.services.incidents import create_pii_incident
 from app.services.model_runs import create_model_run, estimate_local_cost_usd
 from app.services.pii import PIIResult, get_pii_detector
 from app.services.prompt_versions import get_active_prompt_version
+from app.services.review_policy import create_review_for_high_risk_oversight, create_reviews_for_pii
 
 
 def run_governance_gateway(
@@ -32,69 +32,37 @@ def run_governance_gateway(
     input_pii_result = pii_detector.detect(payload.input_text)
 
     if system.approval_status in {"blocked", "retired"}:
-        run_id = _record_model_run_shell(
-            db,
-            payload,
-            system,
-            active_prompt_version.id if active_prompt_version else None,
-            "blocked",
-            input_pii_result=input_pii_result,
-        )
-        if input_pii_result.pii_detected:
-            create_pii_incident(db, actor=payload.actor, ai_system_id=system.id, model_run_id=run_id, source="input", pii_result=input_pii_result)
-        create_reviews_for_pii(
+        response = _record_non_executed_run(
             db,
             actor=payload.actor,
-            ai_system=system,
-            model_run_id=run_id,
-            input_pii_detected=input_pii_result.pii_detected,
-            output_pii_detected=False,
-        )
-        response = GovernanceRunResponse(
-            run_id=run_id,
-            status="blocked",
+            payload=payload,
+            system=system,
+            prompt_version_id=active_prompt_version.id if active_prompt_version else None,
+            gateway_status="blocked",
+            input_pii_result=input_pii_result,
             governance_messages=[
                 f"Execution blocked because approval status is {system.approval_status}.",
                 "No model provider call was made.",
                 "Blocked attempt was logged as a model run shell for audit review.",
-                *_pii_messages("input", input_pii_result),
             ],
         )
-        _record_gateway_event(db, payload, system, response.status, response.governance_messages, run_id=run_id)
-        db.commit()
         return response
 
     if system.approval_status == "pending":
-        run_id = _record_model_run_shell(
-            db,
-            payload,
-            system,
-            active_prompt_version.id if active_prompt_version else None,
-            "requires_review",
-            input_pii_result=input_pii_result,
-        )
-        if input_pii_result.pii_detected:
-            create_pii_incident(db, actor=payload.actor, ai_system_id=system.id, model_run_id=run_id, source="input", pii_result=input_pii_result)
-        create_reviews_for_pii(
+        response = _record_non_executed_run(
             db,
             actor=payload.actor,
-            ai_system=system,
-            model_run_id=run_id,
-            input_pii_detected=input_pii_result.pii_detected,
-            output_pii_detected=False,
-        )
-        response = GovernanceRunResponse(
-            run_id=run_id,
-            status="requires_review",
+            payload=payload,
+            system=system,
+            prompt_version_id=active_prompt_version.id if active_prompt_version else None,
+            gateway_status="requires_review",
+            input_pii_result=input_pii_result,
             governance_messages=[
                 "Execution requires review because the AI system approval status is pending.",
                 "Pending systems are not executed in the local MVP gateway.",
                 "Review-required attempt was logged as a model run shell for audit review.",
-                *_pii_messages("input", input_pii_result),
             ],
         )
-        _record_gateway_event(db, payload, system, response.status, response.governance_messages, run_id=run_id)
-        db.commit()
         return response
 
     try:
@@ -150,17 +118,13 @@ def run_governance_gateway(
         input_pii_result=input_pii_result.to_dict(),
         output_pii_result=output_pii_result.to_dict(),
     )
-    if input_pii_result.pii_detected:
-        create_pii_incident(db, actor=payload.actor, ai_system_id=system.id, model_run_id=run_id, source="input", pii_result=input_pii_result)
-    if output_pii_result.pii_detected:
-        create_pii_incident(db, actor=payload.actor, ai_system_id=system.id, model_run_id=run_id, source="output", pii_result=output_pii_result)
-    create_reviews_for_pii(
+    _record_pii_side_effects(
         db,
         actor=payload.actor,
         ai_system=system,
         model_run_id=run_id,
-        input_pii_detected=input_pii_result.pii_detected,
-        output_pii_detected=output_pii_result.pii_detected,
+        input_pii_result=input_pii_result,
+        output_pii_result=output_pii_result,
     )
     create_review_for_high_risk_oversight(db, actor=payload.actor, ai_system=system, model_run_id=run_id)
 
@@ -187,6 +151,45 @@ def run_governance_gateway(
             "Evaluation queued for asynchronous local processing.",
             *_pii_messages("input", input_pii_result),
             *_pii_messages("output", output_pii_result),
+        ],
+    )
+    _record_gateway_event(db, payload, system, response.status, response.governance_messages, run_id=run_id)
+    db.commit()
+    return response
+
+
+def _record_non_executed_run(
+    db: Session,
+    actor: str,
+    payload: GovernanceRunRequest,
+    system: AISystem,
+    prompt_version_id: uuid.UUID | None,
+    gateway_status: str,
+    input_pii_result: PIIResult,
+    governance_messages: list[str],
+) -> GovernanceRunResponse:
+    run_id = _record_model_run_shell(
+        db,
+        payload,
+        system,
+        prompt_version_id,
+        gateway_status,
+        input_pii_result=input_pii_result,
+    )
+    _record_pii_side_effects(
+        db,
+        actor=actor,
+        ai_system=system,
+        model_run_id=run_id,
+        input_pii_result=input_pii_result,
+        output_pii_result=None,
+    )
+    response = GovernanceRunResponse(
+        run_id=run_id,
+        status=gateway_status,
+        governance_messages=[
+            *governance_messages,
+            *_pii_messages("input", input_pii_result),
         ],
     )
     _record_gateway_event(db, payload, system, response.status, response.governance_messages, run_id=run_id)
@@ -221,6 +224,30 @@ def _record_model_run_shell(
         input_pii_result=input_pii_result.to_dict() if input_pii_result else None,
     )
     return run_id
+
+
+def _record_pii_side_effects(
+    db: Session,
+    *,
+    actor: str,
+    ai_system: AISystem,
+    model_run_id: uuid.UUID,
+    input_pii_result: PIIResult,
+    output_pii_result: PIIResult | None,
+) -> None:
+    if input_pii_result.pii_detected:
+        create_pii_incident(db, actor=actor, ai_system_id=ai_system.id, model_run_id=model_run_id, source="input", pii_result=input_pii_result)
+    output_pii_detected = output_pii_result.pii_detected if output_pii_result else False
+    if output_pii_result and output_pii_result.pii_detected:
+        create_pii_incident(db, actor=actor, ai_system_id=ai_system.id, model_run_id=model_run_id, source="output", pii_result=output_pii_result)
+    create_reviews_for_pii(
+        db,
+        actor=actor,
+        ai_system=ai_system,
+        model_run_id=model_run_id,
+        input_pii_detected=input_pii_result.pii_detected,
+        output_pii_detected=output_pii_detected,
+    )
 
 
 def _pii_messages(source: str, result: PIIResult) -> list[str]:

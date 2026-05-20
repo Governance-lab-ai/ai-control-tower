@@ -375,8 +375,10 @@ Episode 6 evaluation additions:
 Episode 7 human review additions:
 
 - `human_reviews` records are created for PII input flags, PII output flags, failed evaluations, hallucination flags, and high-risk systems that require human oversight.
+- `review_policy.py` centralises review routing reasons, priorities, and creation rules so new review triggers do not accumulate directly inside the gateway.
 - Review records include status, reason, priority, summary, reviewer identity, decision notes, and decision timestamp.
 - `/reviews`, `/reviews/{review_id}`, and `/reviews/{review_id}/decision` expose the queue, evidence detail, and reviewer decision workflow.
+- `/model-runs/{run_id}/incidents` exposes incidents linked to a run for review detail pages.
 - Reviewer decisions create audit events with the reviewer identity, decision, notes, and timestamp.
 - The frontend includes `/reviews` for the pending queue and `/reviews/[id]` for evidence inspection and decision capture.
 
