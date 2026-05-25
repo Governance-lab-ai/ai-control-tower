@@ -229,6 +229,47 @@ Possible deliverables:
 - Multi-tenant isolation.
 - Terraform/Bicep infrastructure.
 
+## Phase 9 — Policy and capability engine
+
+**Goal:** move from fixed gateway rules to explicit, versioned policy decisions.
+
+Deliverables:
+
+- Local policy decision provider.
+- Policy decision API.
+- Policy decision evidence in model-run timelines.
+- Agent registry.
+- Tool registry.
+- Capability grants.
+- Policy version records.
+
+Acceptance criteria:
+
+- Model execution decisions include policy name, version, matched rules, and reasons.
+- Tool-call decisions can return `allow`, `deny`, or `require_review`.
+- Denied and review-required decisions create audit evidence.
+- The system can explain why a model run or tool call was allowed or blocked.
+
+## Phase 10 — Tool-call governance
+
+**Goal:** govern agent actions, not just model calls.
+
+Deliverables:
+
+- `POST /governance/tool-call`.
+- Tool-call evidence records.
+- Tool argument validation.
+- High-impact tool review flow.
+- Denied tool-call incident rules.
+- Frontend views for agents, tools, and capability grants.
+
+Acceptance criteria:
+
+- Unregistered tools cannot execute.
+- Tools outside an agent's capability grants are denied.
+- High-impact tools can require human review.
+- Every tool-call decision has audit evidence.
+
 ## V2 — Multi-agent governance system
 
 **Goal:** evolve the Control Tower from a gateway-led MVP into a genuine multi-agent governance system with bounded, auditable agents.

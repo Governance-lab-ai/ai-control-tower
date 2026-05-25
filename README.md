@@ -23,10 +23,13 @@ This project shows the operational layer that a serious organisation needs aroun
 - PII and safety flags.
 - Human review queues.
 - Incidents, audit logs, exports, and dashboards.
+- A final governance dashboard with KPI cards, risk heatmap, incident summary, failed evaluations, model usage, cost, latency, and audit export.
 - Local-first development with Azure integration paths.
 - Persistent model run evidence for prompt, input, output, retrieval context, provider metadata, cost, and latency.
 - Local regex PII detection for synthetic demo patterns, with incident creation and redacted snippets.
 - Local evaluation providers for output quality signals, including a deterministic baseline, a stronger semantic-local heuristic, and an optional Ollama local judge.
+- Exportable run-level evidence packs for audit review, including system, prompt, model run, retrieved documents, run steps, evaluations, incidents, reviews, and audit events.
+- Filtered audit exports as CSV or JSON for system, department, date range, risk level, and incident type.
 
 Planned governance controls include PII detection with Presidio/Microsoft Presidio plus regex, NER, and entity detection fallback; prompt injection and jailbreak detection; pre-LLM redaction for names, emails, phone numbers, and account numbers; role-based access for admin, analyst, reviewer, and auditor; and audit evidence for prompts, outputs, retrieved docs, approvals, costs, and reviewer actions.
 
@@ -52,6 +55,8 @@ The Control Tower gives visibility, control, accountability, and evidence around
 | `API_SPEC.md` | FastAPI endpoint design, request/response examples, error handling conventions. |
 | `AZURE_INTEGRATION.md` | Azure service mapping, integration phases, deployment target, security considerations. |
 | `GOVERNANCE_MODEL.md` | Risk model, approval workflow, human review routing, evaluation policy. |
+| `AGENT_GOVERNANCE_PLAN.md` | Next-build plan for policy decisions, agent identity, tool governance, and capability controls. |
+| `BUSINESS_TRANSITION_PLAN.md` | Explains how the mock/local prototype becomes a real organisational AI governance gateway. |
 | `TESTING.md` | Test strategy for backend, frontend, evaluations, security, accessibility, and demo data. |
 | `DEMO_SCRIPT.md` | YouTube and stakeholder demo scenario, seed data, story beats, key screenshots. |
 | `ENVIRONMENT.md` | Local environment variables, secrets model, dev/prod configuration conventions. |
@@ -144,6 +149,27 @@ OLLAMA_MODEL=llama3.1
 ```
 
 The same boundary supports the local mock provider today and future Azure/OpenAI adapters later. A failed provider call is still recorded as a failed model-run shell with gateway step evidence.
+
+## Showcase Seed Data
+
+Fresh local installs seed a synthetic but product-like showcase dataset when `ENABLE_DEMO_SEED=true`.
+
+The showcase includes:
+
+- `Customer Support Summariser`: approved, medium risk, active prompt governance, run history, PII incident, and pending review.
+- `Sales Email Generator`: approved, low risk, run history, and active prompt.
+- `Procurement Policy Assistant`: approved, medium risk, retrieved policy context, run history, and evaluation evidence.
+- `HR CV Screening Assistant`: blocked, high risk, showing how the gateway prevents unapproved HR use.
+
+The seeded data is designed to make the dashboard useful immediately: it includes a blocked high-risk system, a PII incident, failed-evaluation/review evidence, visible run costs, and latency metrics.
+
+To re-add the showcase after clearing local data:
+
+```bash
+docker compose run --rm backend python -m app.cli seed-showcase
+```
+
+With Ollama enabled in `backend/.env`, open `Customer Support Summariser`, inspect the **Prompt Governance** panel, then use **Test Run**. The request will use the active prompt version and call Ollama through the backend governance gateway.
 
 ## Environment files
 

@@ -350,7 +350,10 @@ Episode 4 logging additions:
 - Local mock provider cost is estimated from prompt/input/output/retrieval text length.
 - Supplied retrieved documents are persisted and linked to the run.
 - `GET /model-runs`, `GET /model-runs/{run_id}`, and `GET /ai-systems/{system_id}/runs` expose run evidence for UI and review.
-- `GET /ai-systems/{system_id}/prompt-versions`, `POST /ai-systems/{system_id}/prompt-versions`, and `PATCH /prompt-versions/{prompt_version_id}/activate` manage prompt versions.
+- `GET /ai-systems/{system_id}/prompt-versions`, `POST /ai-systems/{system_id}/prompt-versions`, `PATCH /prompt-versions/{prompt_version_id}/approve`, `PATCH /prompt-versions/{prompt_version_id}/activate`, and `PATCH /prompt-versions/{prompt_version_id}/retire` manage prompt versions.
+- Prompt versions now follow `draft -> approved -> active -> retired`.
+- Gateway execution requires an active prompt version and exact prompt-text match. Missing, inactive, or cross-system prompt versions are blocked; prompt mismatches are held for review without calling the provider.
+- System detail includes a Prompt Governance panel for creating draft prompts, approving, activating, and retiring prompt versions.
 
 Episode 5 PII and incident additions:
 
@@ -385,6 +388,20 @@ Episode 7 human review additions:
 - `/incidents/{incident_id}` supports status updates with actor, notes, and an `incident.status_changed` audit event.
 - Reviewer decisions create audit events with the reviewer identity, decision, notes, and timestamp.
 - The frontend includes `/reviews` for the pending queue and `/reviews/[id]` for evidence inspection and decision capture.
+
+Policy and agent-governance foundation:
+
+- `policy_engine.py` defines the first local policy decision layer with `allow`, `deny`, and `require_review` actions.
+- `POST /policies/evaluate` can evaluate model-execution or tool-call policy decisions without executing anything.
+- Gateway model runs record a `policy_decision` run step containing policy name, version, matched rules, and reasons.
+- This is the bridge from model-run governance toward future agent/tool-call governance.
+
+Clean-mode readiness:
+
+- `ENABLE_DEMO_SEED=false` prevents startup from creating synthetic demo systems and runs.
+- `python -m app.cli clear-demo` removes existing synthetic demo systems and linked evidence from a local database.
+- `python -m app.cli clear-all-local-data --confirm CLEAR_ALL_LOCAL_DATA` empties all application records in non-production when preparing a database for real organisational onboarding.
+- `python -m app.cli seed-demo` re-adds the synthetic demo data when needed for screenshots or demos.
 
 ### Phase D — Evaluation layer
 

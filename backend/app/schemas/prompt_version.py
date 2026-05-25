@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-PromptVersionStatus = Literal["draft", "active", "retired"]
+PromptVersionStatus = Literal["draft", "approved", "active", "retired"]
 
 
 class PromptVersionCreate(BaseModel):

@@ -8,6 +8,7 @@ GatewayStatus = Literal["executed", "blocked", "requires_review", "failed"]
 
 class GovernanceRunRequest(BaseModel):
     ai_system_id: UUID
+    prompt_version_id: UUID | None = None
     actor: str = Field(min_length=2, max_length=160)
     prompt: str = Field(min_length=1, max_length=12000)
     input_text: str = Field(min_length=1, max_length=12000)

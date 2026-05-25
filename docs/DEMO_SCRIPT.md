@@ -25,11 +25,10 @@ Acme Corp
 
 | System | Department | Risk | Status | Demo purpose |
 |---|---|---:|---|---|
-| Customer Support Summariser | Customer Operations | Medium | Pending | Main system used in model run demo. |
+| Customer Support Summariser | Customer Operations | Medium | Approved | Main system used in model run demo with PII, incident, review, and evidence pack. |
 | Sales Email Generator | Revenue | Low | Approved | Shows lower-risk AI usage. |
 | HR CV Screening Assistant | People | High | Blocked | Shows governance restraint. |
-| Finance Report Assistant | Finance | Medium | Approved | Shows cost/usage and risk. |
-| Marketing Content Assistant | Marketing | Medium | Approved | Shows prompt injection/policy issue. |
+| Procurement Policy Assistant | Procurement | Medium | Approved | Shows retrieved policy context, cost, latency, and evaluation evidence. |
 
 ## Opening hook
 
@@ -79,6 +78,7 @@ Call out:
 - PII incidents.
 - Human reviews waiting.
 - Cost and usage.
+- Audit export.
 
 Narration:
 
@@ -152,7 +152,24 @@ Trigger a more severe case:
 
 Show incident creation and audit trail.
 
-### Scene 8 — Azure integration
+### Scene 8 — Audit export
+
+Open the audit page.
+
+Show:
+
+- Filter by system, department, risk, incident type, or date range.
+- Export CSV.
+- Export JSON.
+- Run detail evidence pack export.
+
+Narration:
+
+```text
+The point is not only that the system made a decision. The point is that it can produce evidence of what happened, who asked, what was called, what checks ran, and what follow-up was created.
+```
+
+### Scene 9 — Azure integration
 
 Open settings/integrations page.
 
@@ -171,7 +188,7 @@ Narration:
 This runs locally first, but the architecture is designed so local providers can later be replaced with Azure services.
 ```
 
-### Scene 9 — Governance lesson
+### Scene 10 — Governance lesson
 
 Close with:
 
@@ -189,6 +206,7 @@ Close with:
 - Review detail page.
 - Incidents page.
 - Audit log.
+- Audit export.
 - Settings integrations.
 - Architecture diagram.
 

@@ -51,6 +51,7 @@ SAFETY_PROVIDER=local
 SECRET_PROVIDER=env
 TELEMETRY_PROVIDER=console
 DATA_GOVERNANCE_PROVIDER=local
+ENABLE_DEMO_SEED=true
 
 # Optional direct provider keys for local experiments only
 OPENAI_API_KEY=
@@ -103,6 +104,34 @@ Episode 1 implements these templates at:
 - `.env.example`
 - `backend/.env.example`
 - `frontend/.env.example`
+
+`docker-compose.yml` loads `backend/.env.example` first and then an optional ignored `backend/.env` override. Use `backend/.env` for machine-specific local settings such as pointing the backend at an Ollama server on a Lima host.
+
+For a clean, organisation-ready local database, set:
+
+```text
+ENABLE_DEMO_SEED=false
+```
+
+Then start the backend and register real systems through the UI/API. Existing synthetic seed data can be removed with:
+
+```bash
+docker compose run --rm backend python -m app.cli clear-demo
+```
+
+To populate a product walkthrough dataset after clearing local data:
+
+```bash
+docker compose run --rm backend python -m app.cli seed-showcase
+```
+
+The showcase seed creates realistic synthetic systems, active prompt versions, model runs, evaluation evidence, a PII incident, and a pending review queue item. If `LLM_PROVIDER=ollama`, seeded system metadata uses the configured `OLLAMA_MODEL`.
+
+If a local database contains older test records and needs to be emptied before registering real organisational systems, use the guarded non-production reset:
+
+```bash
+docker compose run --rm backend python -m app.cli clear-all-local-data --confirm CLEAR_ALL_LOCAL_DATA
+```
 
 ## Docker Compose environment
 
@@ -175,6 +204,14 @@ AZURE_OPENAI_ENDPOINT=
 AZURE_OPENAI_DEPLOYMENT_NAME=
 ```
 
+For Lima on macOS, a host Ollama server can usually be reached from the backend container with:
+
+```text
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://host.lima.internal:11434
+OLLAMA_MODEL=llama3.2
+```
+
 Evaluation thresholds are configurable:
 
 ```text
@@ -202,6 +239,8 @@ Only enable this in `APP_ENV=local`.
 On app startup:
 
 - If `APP_ENV=production`, reject `AUTH_MODE=local_mock`.
+- If `APP_ENV=production`, reject `ENABLE_DEMO_SEED=true`.
+- If `APP_ENV=production`, reject `clear-all-local-data`.
 - If `APP_ENV=production`, reject `SECRET_PROVIDER=env` unless explicitly allowed.
 - If Azure provider selected, require endpoint and credentials/managed identity.
 - If frontend receives secret-like variables, fail build or warn loudly.

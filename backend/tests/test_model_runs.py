@@ -6,6 +6,7 @@ os.environ["DATABASE_URL"] = "sqlite://"
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.prompt_versions import DEFAULT_PROMPT_TEXT
 from tests.helpers.factories import make_ai_system_payload
 
 
@@ -27,7 +28,7 @@ def _create_run(client: TestClient, system_id: str) -> dict:
         json={
             "ai_system_id": system_id,
             "actor": "test:model-run-user",
-            "prompt": "Summarise the synthetic case for a reviewer.",
+            "prompt": DEFAULT_PROMPT_TEXT,
             "input_text": "Synthetic customer asks whether a delayed order can be refunded.",
             "retrieved_documents": ["Synthetic refund policy.", "Synthetic shipping policy."],
             "metadata": {"source": "pytest"},
@@ -51,7 +52,7 @@ def test_model_run_detail_and_system_history_endpoints() -> None:
     detail = detail_response.json()
     assert detail["id"] == gateway_response["run_id"]
     assert detail["ai_system_id"] == system["id"]
-    assert detail["prompt"] == "Summarise the synthetic case for a reviewer."
+    assert detail["prompt"] == DEFAULT_PROMPT_TEXT
     assert detail["output_text"].startswith("[Local mock output]")
     assert detail["model_provider"] == "local_mock"
     assert detail["model_name"] == "mock-governance-gateway"
@@ -75,3 +76,21 @@ def test_model_runs_list_includes_created_run() -> None:
     assert list_response.status_code == 200
     runs = list_response.json()
     assert any(run["id"] == gateway_response["run_id"] for run in runs)
+
+
+def test_model_run_evidence_pack_contains_audit_evidence() -> None:
+    with TestClient(app) as client:
+        system = _create_approved_system(client)
+        gateway_response = _create_run(client, system["id"])
+        evidence_response = client.get(f"/model-runs/{gateway_response['run_id']}/evidence-pack")
+
+    assert evidence_response.status_code == 200
+    pack = evidence_response.json()
+    assert pack["evidence_pack_version"] == "2026-05-local-v1"
+    assert pack["run_id"] == gateway_response["run_id"]
+    assert pack["ai_system"]["id"] == system["id"]
+    assert pack["prompt_version"]["status"] == "active"
+    assert pack["model_run"]["id"] == gateway_response["run_id"]
+    assert len(pack["model_run"]["retrieved_documents"]) == 2
+    assert any(step["step_type"] == "provider_call" for step in pack["model_run"]["run_steps"])
+    assert any(event["action"] == "governance.run.executed" for event in pack["audit_events"])

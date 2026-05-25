@@ -201,7 +201,17 @@ Audit behaviour:
 - Blocked and pending calls create model-run shell records with no output, zero cost, zero latency, and `model_version` set to `not_executed`.
 - Failed provider calls create failed model-run shell records with safe provider-error evidence.
 - `run_steps` records approval checks, PII checks, provider call attempts, evaluation, and review routing for each run. These are operational decision traces, not hidden chain-of-thought logs.
-- Gateway runs link the active prompt version when one exists. Newly registered systems receive a default active `v1` prompt version.
+- Gateway runs validate the request against the active prompt version. Newly registered systems receive a default active `v1` prompt version.
+- Governed execution requires the request prompt to exactly match the active prompt text. Variable app/user content should be sent as `input_text`.
+- Missing or inactive prompt versions are blocked before provider execution. Prompt mismatches are logged as `requires_review` shell runs with a `prompt_version_check` run step.
+
+Prompt version lifecycle:
+
+```text
+draft -> approved -> active -> retired
+```
+
+Activation retires the previous active prompt version for the same AI system. Prompt approval, activation, and retirement are audit events.
 
 ## V2 multi-agent governance model
 
@@ -214,6 +224,30 @@ The V2 direction is a genuine multi-agent governance system. Agents are bounded 
 | Compliance Agent | PII detection, policy checks, prompt injection detection, output sanitisation. |
 | Human Review Agent | Escalate risky outputs, route to reviewer, generate audit summary, maintain approval workflow. |
 | Reporting Agent | Telemetry, cost tracking, latency metrics, weekly insights. |
+
+## Policy decision layer
+
+The Control Tower now has the first local policy decision layer. The goal is to move route decisions out of ad hoc application code and into explicit, testable decisions.
+
+Current local policy decisions include:
+
+| Action type | Decision examples |
+|---|---|
+| `model_execution` | Approved systems are allowed; pending systems require review; blocked/retired systems are denied. |
+| `tool_call` | Missing/ungranted/destructive tools are denied; high-impact tools such as `send_email` require review. |
+
+Every policy decision should include:
+
+- Policy name.
+- Policy version.
+- Decision action: `allow`, `deny`, or `require_review`.
+- Matched rules.
+- Plain-language reasons.
+- Safe metadata.
+
+For model execution, the gateway records this as a `policy_decision` run step. For future tool-call governance, the same decision model should gate each tool action before execution.
+
+The local policy engine is intentionally small. Later versions should be able to delegate to OPA/Rego, Cedar, or another mature policy engine without changing the Control Tower evidence model.
 
 ## Dynamic risk scoring
 
@@ -386,7 +420,7 @@ Audit events are required for:
 
 - System create/update.
 - Approval status changes.
-- Prompt version activation.
+- Prompt version creation, approval, activation, and retirement.
 - Gateway route decisions.
 - Review creation and decision.
 - Incident creation/update/resolution.

@@ -17,6 +17,7 @@ from app.providers.evaluation import (
     SemanticLocalEvaluationProvider,
     get_evaluation_provider,
 )
+from app.services.prompt_versions import DEFAULT_PROMPT_TEXT
 from tests.helpers.factories import make_ai_system_payload
 
 
@@ -37,7 +38,7 @@ def _gateway_payload(system_id: str) -> dict:
     return {
         "ai_system_id": system_id,
         "actor": "test:evaluation-user",
-        "prompt": "Summarise the request using approved policy language.",
+        "prompt": DEFAULT_PROMPT_TEXT,
         "input_text": "Synthetic support ticket asks for a delivery status update.",
         "retrieved_documents": ["Synthetic delivery policy document."],
         "metadata": {"source": "pytest"},

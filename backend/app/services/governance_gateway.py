@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings
 from app.models.ai_system import AISystem
+from app.models.prompt_version import PromptVersion
 from app.providers.llm import LLMRequest, get_llm_provider
 from app.schemas.governance import GovernanceRunRequest, GovernanceRunResponse
 from app.services.audit import create_audit_event
@@ -13,6 +14,7 @@ from app.services.evaluations import evaluate_model_run_by_id
 from app.services.incidents import create_pii_incident
 from app.services.model_runs import create_model_run, create_run_step, estimate_local_cost_usd
 from app.services.pii import PIIResult, get_pii_detector
+from app.services.policy_engine import PolicyDecision, evaluate_model_execution_policy
 from app.services.prompt_versions import get_active_prompt_version
 from app.services.review_policy import create_review_for_high_risk_oversight, create_reviews_for_pii
 
@@ -27,11 +29,12 @@ def run_governance_gateway(
     if system is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"code": "AI_SYSTEM_NOT_FOUND"})
 
-    active_prompt_version = get_active_prompt_version(db, system.id)
     pii_detector = get_pii_detector()
     input_pii_result = pii_detector.detect(payload.input_text)
+    policy_decision = evaluate_model_execution_policy(ai_system=system, payload=payload, input_pii_result=input_pii_result)
+    prompt_validation_status, active_prompt_version, prompt_validation_messages = _validate_prompt_version(db, system, payload)
 
-    if system.approval_status in {"blocked", "retired"}:
+    if policy_decision.action == "deny":
         response = _record_non_executed_run(
             db,
             actor=payload.actor,
@@ -40,15 +43,20 @@ def run_governance_gateway(
             prompt_version_id=active_prompt_version.id if active_prompt_version else None,
             gateway_status="blocked",
             input_pii_result=input_pii_result,
+            policy_decision=policy_decision,
+            prompt_version=active_prompt_version,
+            prompt_validation_status=prompt_validation_status,
+            prompt_validation_messages=prompt_validation_messages,
             governance_messages=[
-                f"Execution blocked because approval status is {system.approval_status}.",
+                f"Execution blocked by policy {policy_decision.policy_name}@{policy_decision.policy_version}.",
+                *policy_decision.reasons,
                 "No model provider call was made.",
                 "Blocked attempt was logged as a model run shell for audit review.",
             ],
         )
         return response
 
-    if system.approval_status == "pending":
+    if policy_decision.action == "require_review":
         response = _record_non_executed_run(
             db,
             actor=payload.actor,
@@ -57,10 +65,36 @@ def run_governance_gateway(
             prompt_version_id=active_prompt_version.id if active_prompt_version else None,
             gateway_status="requires_review",
             input_pii_result=input_pii_result,
+            policy_decision=policy_decision,
+            prompt_version=active_prompt_version,
+            prompt_validation_status=prompt_validation_status,
+            prompt_validation_messages=prompt_validation_messages,
             governance_messages=[
-                "Execution requires review because the AI system approval status is pending.",
-                "Pending systems are not executed in the local MVP gateway.",
+                f"Execution requires review by policy {policy_decision.policy_name}@{policy_decision.policy_version}.",
+                *policy_decision.reasons,
+                "Review-required requests are not executed in the local MVP gateway.",
                 "Review-required attempt was logged as a model run shell for audit review.",
+            ],
+        )
+        return response
+
+    if prompt_validation_status in {"blocked", "requires_review"}:
+        response = _record_non_executed_run(
+            db,
+            actor=payload.actor,
+            payload=payload,
+            system=system,
+            prompt_version_id=active_prompt_version.id if active_prompt_version else None,
+            gateway_status=prompt_validation_status,
+            input_pii_result=input_pii_result,
+            policy_decision=policy_decision,
+            prompt_version=active_prompt_version,
+            prompt_validation_status=prompt_validation_status,
+            prompt_validation_messages=prompt_validation_messages,
+            governance_messages=[
+                *prompt_validation_messages,
+                "No model provider call was made.",
+                "Prompt governance decision was logged as a model run shell for audit review.",
             ],
         )
         return response
@@ -98,6 +132,10 @@ def run_governance_gateway(
             system=system,
             input_pii_result=input_pii_result,
             approval_status="passed",
+            policy_decision=policy_decision,
+            prompt_version=active_prompt_version,
+            prompt_validation_status=prompt_validation_status,
+            prompt_validation_messages=prompt_validation_messages,
         )
         create_run_step(
             db,
@@ -157,6 +195,10 @@ def run_governance_gateway(
         system=system,
         input_pii_result=input_pii_result,
         approval_status="passed",
+        policy_decision=policy_decision,
+        prompt_version=active_prompt_version,
+        prompt_validation_status=prompt_validation_status,
+        prompt_validation_messages=prompt_validation_messages,
     )
     create_run_step(
         db,
@@ -209,7 +251,8 @@ def run_governance_gateway(
         output_text=provider_response.output_text,
         governance_messages=[
             "AI system is approved for gateway execution.",
-            f"Linked active prompt version {active_prompt_version.version}." if active_prompt_version else "No active prompt version was linked.",
+            f"Policy decision: {policy_decision.action} via {policy_decision.policy_name}@{policy_decision.policy_version}.",
+            *_prompt_validation_response_messages(active_prompt_version, prompt_validation_messages),
             f"Executed through provider {provider_response.provider} using model {provider_response.model}.",
             f"Model run logged with latency {latency_ms}ms and estimated cost ${cost_usd:.6f}.",
             "Evaluation queued for asynchronous local processing.",
@@ -230,6 +273,10 @@ def _record_non_executed_run(
     prompt_version_id: uuid.UUID | None,
     gateway_status: str,
     input_pii_result: PIIResult,
+    policy_decision: PolicyDecision,
+    prompt_version: PromptVersion | None,
+    prompt_validation_status: str,
+    prompt_validation_messages: list[str],
     governance_messages: list[str],
 ) -> GovernanceRunResponse:
     run_id = _record_model_run_shell(
@@ -246,6 +293,10 @@ def _record_non_executed_run(
         system=system,
         input_pii_result=input_pii_result,
         approval_status=gateway_status,
+        policy_decision=policy_decision,
+        prompt_version=prompt_version,
+        prompt_validation_status=prompt_validation_status,
+        prompt_validation_messages=prompt_validation_messages,
     )
     _record_pii_side_effects(
         db,
@@ -314,6 +365,10 @@ def _record_common_pre_execution_steps(
     system: AISystem,
     input_pii_result: PIIResult,
     approval_status: str,
+    policy_decision: PolicyDecision,
+    prompt_version: PromptVersion | None,
+    prompt_validation_status: str,
+    prompt_validation_messages: list[str],
 ) -> None:
     approval_output_by_status = {
         "passed": "AI system approval check passed; provider call was allowed.",
@@ -339,6 +394,30 @@ def _record_common_pre_execution_steps(
     create_run_step(
         db,
         model_run_id=model_run_id,
+        step_type="policy_decision",
+        name="Policy decision",
+        status_=policy_decision.action,
+        input_summary="Local policy evaluated the requested model execution.",
+        output_summary="; ".join(policy_decision.reasons),
+        metadata=policy_decision.to_dict(),
+    )
+    create_run_step(
+        db,
+        model_run_id=model_run_id,
+        step_type="prompt_version_check",
+        name="Prompt version check",
+        status_=prompt_validation_status,
+        input_summary="Gateway validated the request prompt against the active approved prompt version.",
+        output_summary="; ".join(prompt_validation_messages),
+        metadata={
+            "prompt_version_id": str(prompt_version.id) if prompt_version else None,
+            "prompt_version": prompt_version.version if prompt_version else None,
+            "prompt_status": prompt_version.status if prompt_version else None,
+        },
+    )
+    create_run_step(
+        db,
+        model_run_id=model_run_id,
         step_type="pii_check",
         name="Input PII check",
         status_="requires_review" if input_pii_result.pii_detected else "passed",
@@ -346,6 +425,43 @@ def _record_common_pre_execution_steps(
         output_summary=_pii_step_summary("input", input_pii_result),
         metadata=_pii_step_metadata(input_pii_result),
     )
+
+
+def _validate_prompt_version(
+    db: Session,
+    system: AISystem,
+    payload: GovernanceRunRequest,
+) -> tuple[str, PromptVersion | None, list[str]]:
+    if payload.prompt_version_id is not None:
+        prompt_version = db.get(PromptVersion, payload.prompt_version_id)
+        if prompt_version is None:
+            return "blocked", None, ["Requested prompt version was not found."]
+        if prompt_version.ai_system_id != system.id:
+            return "blocked", None, ["Requested prompt version does not belong to this AI system."]
+        if prompt_version.status != "active":
+            return "blocked", prompt_version, ["Requested prompt version is not active."]
+    else:
+        prompt_version = get_active_prompt_version(db, system.id)
+        if prompt_version is None:
+            return "blocked", None, ["No active approved prompt version is available for this AI system."]
+
+    if payload.prompt.strip() != prompt_version.prompt_text.strip():
+        return (
+            "requires_review",
+            prompt_version,
+            [
+                f"Prompt text does not match active prompt version {prompt_version.version}.",
+                "Requests must use the approved active prompt exactly and place variable content in input_text.",
+            ],
+        )
+
+    return "passed", prompt_version, [f"Prompt matched active prompt version {prompt_version.version}."]
+
+
+def _prompt_validation_response_messages(prompt_version: PromptVersion | None, prompt_validation_messages: list[str]) -> list[str]:
+    if prompt_version is None:
+        return prompt_validation_messages
+    return [f"Linked active prompt version {prompt_version.version}.", *prompt_validation_messages]
 
 
 def _record_output_pii_step(db: Session, *, model_run_id: uuid.UUID, output_pii_result: PIIResult) -> None:

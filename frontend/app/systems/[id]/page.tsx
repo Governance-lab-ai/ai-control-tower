@@ -6,15 +6,22 @@ import { ModelRunsTable } from "@/components/model-runs-table";
 import { ApprovalBadge, RiskBadge } from "@/components/registry-badges";
 import { PageHeader } from "@/components/ui/page-header";
 import { Panel } from "@/components/ui/panel";
-import { getSystem, getSystemIncidents, getSystemRuns } from "@/lib/api";
+import { getPromptVersions, getSystem, getSystemIncidents, getSystemRuns } from "@/lib/api";
 import { formatBooleanYesNo, formatDateTime, formatRequired } from "@/lib/format";
 import { getNavItems } from "@/lib/navigation";
 import { ApprovalStatusControl } from "./approval-status-control";
+import { PromptGovernancePanel } from "./components/prompt-governance-panel";
 import { TestRunPanel } from "./components/test-run-panel";
 
 export default async function SystemDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [system, runs, incidents] = await Promise.all([getSystem(id), getSystemRuns(id), getSystemIncidents(id)]);
+  const [system, runs, incidents, promptVersions] = await Promise.all([
+    getSystem(id),
+    getSystemRuns(id),
+    getSystemIncidents(id),
+    getPromptVersions(id),
+  ]);
+  const activePromptVersion = promptVersions.find((promptVersion) => promptVersion.status === "active") ?? null;
 
   return (
     <AppShell navItems={getNavItems("AI Systems")}>
@@ -66,7 +73,8 @@ export default async function SystemDetailPage({ params }: { params: Promise<{ i
             </div>
           </Panel>
         </aside>
-        <TestRunPanel systemId={system.id} approvalStatus={system.approval_status} />
+        <PromptGovernancePanel systemId={system.id} promptVersions={promptVersions} />
+        <TestRunPanel systemId={system.id} approvalStatus={system.approval_status} activePromptVersion={activePromptVersion} />
         <Panel className="md:col-span-12">
           <div className="flex flex-col gap-2 border-b border-line-700 px-5 py-4 md:flex-row md:items-center md:justify-between">
             <div>

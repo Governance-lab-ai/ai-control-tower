@@ -210,12 +210,19 @@ Join table.
 | `version` | integer | Increment per system. |
 | `name` | text | Optional label. |
 | `prompt_text` | text | System/developer prompt template. |
-| `status` | text | draft, active, retired. |
+| `status` | text | draft, approved, active, retired. |
 | `created_by_user_id` | UUID FK | Creator. |
 | `created_at` | timestamptz | Created timestamp. |
 | `activated_at` | timestamptz nullable | Active timestamp. |
 
-Episode 4 local MVP creates a default active `v1` prompt version for every registered system. Additional versions can be created as drafts and activated through the API; activation retires the previous active version for the same system.
+Episode 4 local MVP creates a default active `v1` prompt version for every registered system. Additional versions can be created as drafts, approved, activated, and retired through the API; activation retires the previous active version for the same system.
+
+Gateway model execution validates prompt versions before provider execution:
+
+- An approved AI system must have an active prompt version.
+- A supplied `prompt_version_id` must belong to the selected AI system and be active.
+- The request prompt must match the active prompt text exactly.
+- Prompt version failures are captured as `run_steps.step_type = prompt_version_check`.
 
 ### `model_runs`
 
@@ -419,7 +426,20 @@ MVP can store all records indefinitely. Later:
 
 ## Demo seed data requirements
 
-Seed data should create realistic density:
+Showcase seed data is optional. Set `ENABLE_DEMO_SEED=false` for a clean database that is ready for real organisational records.
+
+Use `python -m app.cli clear-demo` to remove existing synthetic seed data and linked evidence from a local database. Use `python -m app.cli seed-showcase` to re-add the product walkthrough dataset.
+
+Use `python -m app.cli clear-all-local-data --confirm CLEAR_ALL_LOCAL_DATA` only in non-production when the whole application dataset should be emptied before onboarding real organisational records.
+
+Current showcase seed data creates:
+
+- Approved customer support, sales, and procurement systems.
+- A blocked high-risk HR system.
+- Active approved prompt versions for each system.
+- Sample model runs with retrieved documents, evaluations, run steps, a PII incident, and a pending review.
+
+Future denser seed data should add:
 
 - 18–25 AI systems.
 - 5 departments.

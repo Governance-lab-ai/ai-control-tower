@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     secret_provider: str = Field(default="env", validation_alias="SECRET_PROVIDER")
     telemetry_provider: str = Field(default="console", validation_alias="TELEMETRY_PROVIDER")
     data_governance_provider: str = Field(default="local", validation_alias="DATA_GOVERNANCE_PROVIDER")
+    enable_demo_seed: bool = Field(default=True, validation_alias="ENABLE_DEMO_SEED")
     ollama_base_url: str = Field(default="http://host.docker.internal:11434", validation_alias="OLLAMA_BASE_URL")
     ollama_model: str = Field(default="llama3.1", validation_alias="OLLAMA_MODEL")
     ollama_evaluation_model: str = Field(default="llama3.1", validation_alias="OLLAMA_EVALUATION_MODEL")
@@ -79,6 +80,8 @@ class Settings(BaseSettings):
     def validate_runtime_safety(self) -> None:
         if self.app_env == "production" and self.auth_mode == "local_mock":
             raise ValueError("AUTH_MODE=local_mock is not allowed in production.")
+        if self.app_env == "production" and self.enable_demo_seed:
+            raise ValueError("ENABLE_DEMO_SEED=true is not allowed in production.")
         if self.app_env == "production" and "localhost" in self.database_url:
             raise ValueError("DATABASE_URL must not point to localhost in production.")
 
