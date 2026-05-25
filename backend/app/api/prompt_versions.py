@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.schemas.prompt_version import PromptVersionCreate, PromptVersionResponse
-from app.services.prompt_versions import activate_prompt_version, create_prompt_version, list_prompt_versions
+from app.services.prompt_versions import activate_prompt_version, approve_prompt_version, create_prompt_version, list_prompt_versions, retire_prompt_version
 
 router = APIRouter(tags=["prompt-versions"])
 
@@ -27,3 +27,13 @@ def create_system_prompt_version(
 @router.patch("/prompt-versions/{prompt_version_id}/activate", response_model=PromptVersionResponse)
 def patch_activate_prompt_version(prompt_version_id: UUID, db: Session = Depends(get_db)) -> PromptVersionResponse:
     return activate_prompt_version(db, prompt_version_id)
+
+
+@router.patch("/prompt-versions/{prompt_version_id}/approve", response_model=PromptVersionResponse)
+def patch_approve_prompt_version(prompt_version_id: UUID, db: Session = Depends(get_db)) -> PromptVersionResponse:
+    return approve_prompt_version(db, prompt_version_id)
+
+
+@router.patch("/prompt-versions/{prompt_version_id}/retire", response_model=PromptVersionResponse)
+def patch_retire_prompt_version(prompt_version_id: UUID, db: Session = Depends(get_db)) -> PromptVersionResponse:
+    return retire_prompt_version(db, prompt_version_id)

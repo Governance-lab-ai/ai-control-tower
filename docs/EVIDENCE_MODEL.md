@@ -133,6 +133,48 @@ AI system registration
   -> evidence item links
 ```
 
+## Current MVP dashboard and exports
+
+Episode 8 adds two practical evidence surfaces on top of the run-level evidence model:
+
+- `GET /dashboard/summary` aggregates governance posture for the dashboard.
+- `GET /audit/export?format=csv|json` exports filtered audit events for review.
+
+The dashboard summary currently includes:
+
+- Total registered AI systems.
+- Systems by risk level.
+- Systems by department.
+- Pending human reviews.
+- Active incidents.
+- Failed evaluations.
+- Total model runs.
+- Estimated total model cost.
+- Average latency.
+- Risk heatmap cells by department and risk level.
+- Incident counts by severity and type.
+- Model usage/cost by provider and model.
+- Recent active incidents.
+- Recent failed evaluations.
+
+Audit export filters currently support:
+
+- System ID.
+- Department.
+- Date range.
+- Risk level.
+- Incident type.
+- Row limit.
+
+The export expands system-level filters into related records, including model runs, prompt versions, evaluations, incidents, human reviews, and audit events. It is intentionally evidence-oriented rather than a generic database dump.
+
+Current limitations:
+
+- Exports are generated on demand and are not yet stored as signed export records.
+- Export access is not yet role-gated because real auth/SSO is out of scope for the local MVP.
+- CSV/JSON exports do not yet apply field-level redaction beyond the existing audit-event minimisation policy.
+- Dashboard metrics are lifetime local metrics, not windowed production analytics.
+
 ## Required evidence by workflow
 
 ### AI system registration
@@ -313,6 +355,33 @@ CREATE TABLE evidence_pack_items (
 | Framework mapping pack | Show evidence linked to NIST/EU/ISO/OECD concepts |
 | Review-period pack | Show activity over a defined period |
 | Demo pack | Show synthetic evidence for YouTube/stakeholder walkthroughs |
+
+## Current MVP evidence pack
+
+The local MVP implements a run-level JSON evidence pack:
+
+```text
+GET /model-runs/{run_id}/evidence-pack
+```
+
+The run detail UI exposes this as **Export Evidence Pack**.
+
+Current pack contents:
+
+- Pack metadata: generation timestamp and evidence pack version.
+- AI system passport.
+- Prompt version used by the run, when linked.
+- Model run evidence: prompt, input, output, provider metadata, latency, cost, status, PII flags, retrieved documents, run steps, and evaluation.
+- Incidents linked to the run.
+- Human reviews linked to the run.
+- Audit events for the system, run, prompt version, linked incidents, and linked reviews.
+
+Current limitations:
+
+- JSON export only.
+- Export is generated on demand and not yet persisted as an `evidence_packs` database record.
+- No redaction policy is applied at export time beyond redacted snippets already stored by PII detection.
+- Export permissions still depend on the local mock access model.
 
 ## Evidence pack example
 

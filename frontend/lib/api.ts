@@ -3,7 +3,9 @@ import type {
   AISystemCreate,
   AuditEvent,
   ApprovalStatus,
+  DashboardSummary,
   Evaluation,
+  EvidencePack,
   GovernanceRunRequest,
   GovernanceRunResponse,
   HumanReview,
@@ -12,6 +14,8 @@ import type {
   Incident,
   IncidentUpdateRequest,
   ModelRun,
+  PromptVersion,
+  PromptVersionCreate,
 } from "@/lib/types";
 
 const PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
@@ -94,6 +98,10 @@ export async function getModelRun(id: string): Promise<ModelRun> {
   return apiFetch<ModelRun>(`/model-runs/${id}`, { cache: "no-store" });
 }
 
+export async function getEvidencePack(runId: string): Promise<EvidencePack> {
+  return apiFetch<EvidencePack>(`/model-runs/${runId}/evidence-pack`, { cache: "no-store" });
+}
+
 export async function getEvaluations(failedOnly = false): Promise<Evaluation[]> {
   const query = failedOnly ? "?failed_only=true" : "";
   return apiFetch<Evaluation[]>(`/evaluations${query}`, { cache: "no-store" });
@@ -144,4 +152,41 @@ export async function decideReview(id: string, payload: HumanReviewDecisionReque
 
 export async function getAuditEvents(): Promise<AuditEvent[]> {
   return apiFetch<AuditEvent[]>("/audit-events", { cache: "no-store" });
+}
+
+export async function getDashboardSummary(): Promise<DashboardSummary> {
+  return apiFetch<DashboardSummary>("/dashboard/summary", { cache: "no-store" });
+}
+
+export function buildAuditExportUrl(filters: Record<string, string>): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value) {
+      params.set(key, value);
+    }
+  }
+  return `${apiBaseUrl()}/audit/export?${params.toString()}`;
+}
+
+export async function getPromptVersions(systemId: string): Promise<PromptVersion[]> {
+  return apiFetch<PromptVersion[]>(`/ai-systems/${systemId}/prompt-versions`, { cache: "no-store" });
+}
+
+export async function createPromptVersion(systemId: string, payload: PromptVersionCreate): Promise<PromptVersion> {
+  return apiFetch<PromptVersion>(`/ai-systems/${systemId}/prompt-versions`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function approvePromptVersion(id: string): Promise<PromptVersion> {
+  return apiFetch<PromptVersion>(`/prompt-versions/${id}/approve`, { method: "PATCH" });
+}
+
+export async function activatePromptVersion(id: string): Promise<PromptVersion> {
+  return apiFetch<PromptVersion>(`/prompt-versions/${id}/activate`, { method: "PATCH" });
+}
+
+export async function retirePromptVersion(id: string): Promise<PromptVersion> {
+  return apiFetch<PromptVersion>(`/prompt-versions/${id}/retire`, { method: "PATCH" });
 }

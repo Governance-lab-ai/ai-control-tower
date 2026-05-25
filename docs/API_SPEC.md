@@ -199,8 +199,9 @@ Request:
 ```json
 {
   "ai_system_id": "11111111-1111-1111-1111-111111111111",
+  "prompt_version_id": "33333333-3333-3333-3333-333333333333",
   "actor": "local_mock:governance_admin",
-  "prompt": "Summarise the request using approved policy language.",
+  "prompt": "Use the registered AI system purpose and approved governance policy when responding.",
   "input_text": "Synthetic support ticket asks for a delivery status update.",
   "retrieved_documents": [
     "Synthetic delivery policy document."
@@ -210,6 +211,14 @@ Request:
   }
 }
 ```
+
+Prompt governance rules:
+
+- If `prompt_version_id` is omitted, the gateway uses the AI system's active prompt version.
+- If `prompt_version_id` is supplied, it must belong to the AI system and must be `active`.
+- The request `prompt` must exactly match the active prompt version text. Variable user/app content belongs in `input_text`.
+- Missing, inactive, or cross-system prompt versions are blocked before provider execution.
+- Prompt text mismatch is logged as a model-run shell with `requires_review`; no provider call is made.
 
 Executed response:
 
@@ -251,6 +260,48 @@ Episode 3 gateway rules:
 - Gateway attempts create persistent `model_runs` records and one `retrieved_documents` row for each supplied retrieved document. Non-executed shells have `output_text: null`, `latency_ms: 0`, `cost_usd: 0`, and `model_version: "not_executed"`.
 - Failed provider calls create `failed` model-run shell records and run-step evidence so the attempted provider, latency, and error are inspectable.
 - `run_steps` records approval, PII, provider call, evaluation, and review-routing evidence for each run. It logs structured decisions and metadata, not private model chain-of-thought.
+- `policy_decision` run steps record local policy name, version, action, matched rules, and reasons.
+
+## Policy decisions
+
+### `POST /policies/evaluate`
+
+Evaluates a local governance policy decision without executing a model or tool. This is the first step toward agent/tool-call governance.
+
+Tool-call example:
+
+```json
+{
+  "action_type": "tool_call",
+  "actor": "agent:support-triage",
+  "context": {
+    "tool_name": "send_email",
+    "action": "send",
+    "allowed_tools": ["ticket_read", "knowledge_search", "send_email"]
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "policy_name": "local-governance-policy",
+  "policy_version": "2026.05.local-v1",
+  "action": "require_review",
+  "reasons": ["Tool send_email requires human review before execution."],
+  "matched_rules": ["review-high-impact-tool"],
+  "metadata": {
+    "action_type": "tool_call",
+    "actor": "agent:support-triage",
+    "tool_name": "send_email",
+    "tool_action": "send",
+    "allowed_tools": ["knowledge_search", "send_email", "ticket_read"]
+  }
+}
+```
+
+Current actions are `allow`, `deny`, and `require_review`. Later work should persist policy versions and tool-call decision records.
 
 ## Model runs
 
@@ -416,9 +467,26 @@ Request:
 }
 ```
 
+Prompt version statuses are:
+
+| Status | Meaning |
+|---|---|
+| `draft` | Created but not approved for use. |
+| `approved` | Approved by governance but not yet active. |
+| `active` | The only prompt version that governed executions may use. |
+| `retired` | No longer usable for new governed executions. |
+
+### `PATCH /prompt-versions/{prompt_version_id}/approve`
+
+Approve a draft prompt version.
+
 ### `PATCH /prompt-versions/{prompt_version_id}/activate`
 
-Activate prompt version. Activating one version retires the previous active version for that system. Newly registered systems receive a default active `v1` prompt version.
+Activate an approved prompt version. Activating one version retires the previous active version for that system. Newly registered systems receive a default active `v1` prompt version.
+
+### `PATCH /prompt-versions/{prompt_version_id}/retire`
+
+Retire a prompt version so it cannot be used for future governed executions.
 
 ## Model runs
 
@@ -458,6 +526,38 @@ Returns full detail for authorised users:
 ### `GET /model-runs/{run_id}/incidents`
 
 Returns incidents linked to the selected model run, newest first.
+
+### `GET /model-runs/{run_id}/evidence-pack`
+
+Returns an export-ready JSON evidence pack for one governed run.
+
+Response includes:
+
+- Evidence pack metadata.
+- AI system passport.
+- Active prompt version used by the run, if available.
+- Model run with prompt, input, output, provider metadata, retrieved documents, run steps, PII flags, and evaluation.
+- Incidents linked to the run.
+- Human reviews linked to the run.
+- Audit events related to the system, run, prompt version, incidents, and reviews.
+
+Example shape:
+
+```json
+{
+  "generated_at": "2026-05-25T12:00:00Z",
+  "evidence_pack_version": "2026-05-local-v1",
+  "run_id": "22222222-2222-2222-2222-222222222222",
+  "ai_system": {},
+  "prompt_version": {},
+  "model_run": {},
+  "incidents": [],
+  "human_reviews": [],
+  "audit_events": []
+}
+```
+
+This MVP endpoint returns JSON only. PDF/CSV exports and persisted evidence-pack records are later work.
 
 ## Evaluations
 
@@ -566,6 +666,31 @@ Returns append-only audit events, newest first. Optional filters are `actor`, `a
 
 Returns one audit event.
 
+### `GET /audit/export`
+
+Exports filtered audit evidence as CSV or JSON.
+
+Query params:
+
+```text
+format=csv|json
+system_id
+department
+start_date
+end_date
+risk_level=low|medium|high|critical
+incident_type
+limit
+```
+
+The local MVP supports practical relationship filters by expanding matching systems into related model runs, prompt versions, evaluations, human reviews, incidents, and audit events. CSV exports include:
+
+```text
+id, created_at, actor, action, entity_type, entity_id, summary, metadata
+```
+
+JSON exports return the same `AuditEventResponse` shape as `GET /audit-events`.
+
 ## Future filtered incident APIs
 
 The local MVP currently exposes root incident endpoints documented above. Stable `/api/v1` filtered routes remain planned.
@@ -601,89 +726,53 @@ Request:
 }
 ```
 
-## Future audit export APIs
-
-The local MVP currently exposes `GET /audit-events` and `GET /audit-events/{event_id}`. Filtered export remains planned.
-
-### `GET /api/v1/audit-events`
-
-Query params:
-
-```text
-action
-entity_type
-entity_id
-actor_user_id
-start_date
-end_date
-page
-page_size
-```
-
-### `GET /api/v1/audit-events/export`
-
-Exports CSV or JSON.
-
-Query params:
-
-```text
-format=csv|json
-start_date
-end_date
-entity_type
-system_id
-```
-
-Requires elevated permission.
-
 ## Dashboard
 
-### `GET /api/v1/dashboard/overview`
+### `GET /dashboard/summary`
 
 Response:
 
 ```json
 {
-  "summary": {
-    "ai_systems_total": 24,
-    "model_runs_30d": 128621,
-    "failed_evaluations_30d": 312,
-    "pii_incidents_30d": 27,
-    "total_cost_30d": 12430.0,
-    "human_reviews_pending": 7
+  "total_ai_systems": 4,
+  "systems_by_risk": {
+    "low": 1,
+    "medium": 2,
+    "high": 1,
+    "critical": 0
   },
-  "risk_posture": {
-    "score": 72,
-    "low": 8,
-    "medium": 11,
-    "high": 3,
-    "critical": 0,
-    "unknown": 2
+  "systems_by_department": {
+    "Customer Operations": 1,
+    "People": 1,
+    "Procurement": 1,
+    "Revenue": 1
   },
-  "recent_incidents": []
+  "pending_reviews": 1,
+  "open_incidents": 1,
+  "failed_evaluations": 1,
+  "total_runs": 4,
+  "total_cost_usd": 0.00319,
+  "average_latency_ms": 87.75,
+  "risk_heatmap": [
+    {"department": "Customer Operations", "risk_level": "medium", "count": 1}
+  ],
+  "incidents_by_severity": {"medium": 1},
+  "incidents_by_type": {"pii_detected_input": 1},
+  "usage_by_model": [
+    {
+      "model_provider": "seed_showcase",
+      "model_name": "llama3.2",
+      "total_runs": 4,
+      "total_cost_usd": 0.00319,
+      "average_latency_ms": 87.75
+    }
+  ],
+  "recent_incidents": [],
+  "recent_failed_evaluations": []
 }
 ```
 
-### `GET /api/v1/dashboard/risk-heatmap`
-
-Response:
-
-```json
-{
-  "departments": ["Customer Success", "Sales", "Marketing", "Finance", "HR"],
-  "columns": ["low", "medium", "high", "critical"],
-  "cells": [
-    {"department": "Customer Success", "risk_level": "low", "count": 3},
-    {"department": "Customer Success", "risk_level": "medium", "count": 4},
-    {"department": "Customer Success", "risk_level": "high", "count": 1},
-    {"department": "Customer Success", "risk_level": "critical", "count": 0}
-  ]
-}
-```
-
-### `GET /api/v1/dashboard/cost-summary`
-
-Returns cost by model, department, system, and day.
+The dashboard page uses this single summary endpoint for KPI cards, risk heatmap, incident panel, failed evaluations panel, and model usage/cost cards.
 
 ## Settings and integrations
 
@@ -704,6 +793,8 @@ Updates non-secret metadata only. Secrets should be handled by backend or Key Va
 | `AI_SYSTEM_NOT_FOUND` | System does not exist or not visible. |
 | `AI_SYSTEM_NOT_APPROVED` | System is pending/blocked/retired. |
 | `PROMPT_VERSION_NOT_ACTIVE` | No active prompt version. |
+| `PROMPT_VERSION_NOT_APPROVED` | Prompt version must be approved before activation. |
+| `PROMPT_VERSION_ALREADY_EXISTS` | Prompt version label already exists for the system. |
 | `POLICY_CHECK_FAILED` | Prompt/input failed policy. |
 | `PII_REVIEW_REQUIRED` | PII requires review. |
 | `EVALUATION_FAILED` | Output failed evaluator threshold. |

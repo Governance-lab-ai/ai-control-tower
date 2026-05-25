@@ -5,6 +5,20 @@ export type DashboardMetric = {
   tone: "neutral" | "trust" | "warning" | "critical";
 };
 
+export type RiskHeatmapCell = {
+  department: string;
+  risk_level: RiskLevel;
+  count: number;
+};
+
+export type ModelUsageSummary = {
+  model_provider: string;
+  model_name: string;
+  total_runs: number;
+  total_cost_usd: number;
+  average_latency_ms: number;
+};
+
 export type RiskLevel = "low" | "medium" | "high" | "critical";
 export type ApprovalStatus = "pending" | "approved" | "blocked" | "retired";
 
@@ -32,11 +46,31 @@ export type GovernanceRunStatus = "executed" | "blocked" | "requires_review" | "
 
 export type GovernanceRunRequest = {
   ai_system_id: string;
+  prompt_version_id?: string | null;
   actor: string;
   prompt: string;
   input_text: string;
   retrieved_documents?: string[];
   metadata?: Record<string, unknown>;
+};
+
+export type PromptVersionStatus = "draft" | "approved" | "active" | "retired";
+
+export type PromptVersion = {
+  id: string;
+  ai_system_id: string;
+  version: string;
+  name: string;
+  prompt_text: string;
+  status: PromptVersionStatus;
+  created_at: string;
+};
+
+export type PromptVersionCreate = {
+  version?: string | null;
+  name: string;
+  prompt_text: string;
+  status?: PromptVersionStatus;
 };
 
 export type GovernanceRunResponse = {
@@ -180,4 +214,34 @@ export type HumanReviewDecisionRequest = {
   reviewer_id: string;
   reviewer_name: string;
   notes: string;
+};
+
+export type EvidencePack = {
+  generated_at: string;
+  evidence_pack_version: string;
+  run_id: string;
+  ai_system: AISystem;
+  prompt_version: PromptVersion | null;
+  model_run: ModelRun;
+  incidents: Incident[];
+  human_reviews: HumanReview[];
+  audit_events: AuditEvent[];
+};
+
+export type DashboardSummary = {
+  total_ai_systems: number;
+  systems_by_risk: Record<RiskLevel, number>;
+  systems_by_department: Record<string, number>;
+  pending_reviews: number;
+  open_incidents: number;
+  failed_evaluations: number;
+  total_runs: number;
+  total_cost_usd: number;
+  average_latency_ms: number;
+  risk_heatmap: RiskHeatmapCell[];
+  incidents_by_severity: Partial<Record<IncidentSeverity, number>>;
+  incidents_by_type: Record<string, number>;
+  usage_by_model: ModelUsageSummary[];
+  recent_incidents: Incident[];
+  recent_failed_evaluations: Evaluation[];
 };

@@ -1,14 +1,15 @@
 import Link from "next/link";
 
+import { AuditExportPanel } from "@/app/audit/audit-export-panel";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/ui/page-header";
 import { Panel } from "@/components/ui/panel";
-import { getAuditEvents } from "@/lib/api";
+import { getAuditEvents, getSystems } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { getNavItems } from "@/lib/navigation";
 
 export default async function AuditPage() {
-  const events = await getAuditEvents();
+  const [events, systems] = await Promise.all([getAuditEvents(), getSystems()]);
 
   return (
     <AppShell navItems={getNavItems("Audit")}>
@@ -17,6 +18,8 @@ export default async function AuditPage() {
         title="Audit Events"
         description="Append-only governance events for registry, gateway, incident, evaluation, and reviewer actions."
       />
+
+      <AuditExportPanel systems={systems} />
 
       <section className="px-5 py-5 md:px-8">
         <Panel>

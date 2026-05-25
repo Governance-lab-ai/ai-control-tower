@@ -10,6 +10,7 @@ from app.db.session import SessionLocal
 from app.main import app
 from app.models.audit_event import AuditEvent
 from app.models.human_review import HumanReview
+from app.services.prompt_versions import DEFAULT_PROMPT_TEXT
 from tests.helpers.factories import make_ai_system_payload
 
 
@@ -45,7 +46,7 @@ def _run_payload(system_id: str, *, input_text: str, retrieved_documents: list[s
     return {
         "ai_system_id": system_id,
         "actor": "test:review-user",
-        "prompt": "Summarise the request using approved policy language.",
+        "prompt": DEFAULT_PROMPT_TEXT,
         "input_text": input_text,
         "retrieved_documents": retrieved_documents or ["Synthetic delivery policy document."],
         "metadata": {"source": "pytest"},
@@ -161,7 +162,7 @@ def test_decided_review_cannot_be_decided_twice() -> None:
                 "decision": "approved",
                 "reviewer_id": "reviewer-2",
                 "reviewer_name": "Avery Approver",
-                "notes": "Approved for synthetic demo use.",
+                "notes": "Approved for synthetic test use.",
             },
         )
         second = client.post(

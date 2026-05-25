@@ -8,6 +8,7 @@ import { Panel } from "@/components/ui/panel";
 import { getModelRun } from "@/lib/api";
 import { formatCurrencyUsd, formatDateTime, formatLatency } from "@/lib/format";
 import { getNavItems } from "@/lib/navigation";
+import { EvidencePackActions } from "./evidence-pack-actions";
 
 export default async function RunDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,7 +24,12 @@ export default async function RunDetailPage({ params }: { params: Promise<{ id: 
             Back to runs
           </Link>
         }
-        action={<RunStatusBadge status={run.status} />}
+        action={
+          <div className="flex flex-col gap-3 md:items-end">
+            <RunStatusBadge status={run.status} />
+            <EvidencePackActions runId={run.id} />
+          </div>
+        }
       />
 
       <section className="grid gap-4 px-5 py-5 md:grid-cols-12 md:px-8">

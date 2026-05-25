@@ -11,6 +11,7 @@ from app.main import app
 from app.models.audit_event import AuditEvent
 from app.models.incident import Incident
 from app.models.model_run import ModelRun
+from app.services.prompt_versions import DEFAULT_PROMPT_TEXT
 from tests.helpers.factories import make_ai_system_payload
 
 
@@ -35,7 +36,7 @@ def test_gateway_creates_incident_for_synthetic_pii_input_and_output() -> None:
             json={
                 "ai_system_id": system["id"],
                 "actor": "test:pii-user",
-                "prompt": "Summarise the case for review.",
+                "prompt": DEFAULT_PROMPT_TEXT,
                 "input_text": "Customer name: Alex Morgan. Email alex.morgan@example.test. Account ID: ACCT-12345.",
                 "retrieved_documents": [],
                 "metadata": {"source": "pytest"},
@@ -74,7 +75,7 @@ def test_gateway_does_not_create_incident_without_pii() -> None:
             json={
                 "ai_system_id": system["id"],
                 "actor": "test:pii-user",
-                "prompt": "Summarise the case for review.",
+                "prompt": DEFAULT_PROMPT_TEXT,
                 "input_text": "Synthetic support ticket asks for a delivery status update.",
                 "retrieved_documents": [],
                 "metadata": {"source": "pytest"},
@@ -103,7 +104,7 @@ def test_incident_status_update_records_audit_event() -> None:
             json={
                 "ai_system_id": system["id"],
                 "actor": "test:pii-user",
-                "prompt": "Summarise the case for review.",
+                "prompt": DEFAULT_PROMPT_TEXT,
                 "input_text": "Customer name: Alex Morgan. Email alex.morgan@example.test.",
                 "retrieved_documents": [],
                 "metadata": {"source": "pytest"},
